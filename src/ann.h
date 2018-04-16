@@ -75,6 +75,8 @@ public:
 
 	double* getWeights();
 
+//tempppp
+int getMaxOutput();
 
 private:
 	void calc_feedForward();

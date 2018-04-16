@@ -6,7 +6,24 @@
 #include "ann.h"
 
 using namespace std;
-
+//temp
+int AnnSerialDBL::getMaxOutput(){
+	double max = 0;
+	int index = 0;
+	//cout << l[L - 1] - 1 << endl;
+	for (int i = 0; i < l[L - 1] - 1; i++) {
+		if (a_arr[s[L - 1] + i] >= max) {
+			max = a_arr[s[L - 1] + i];
+			index = i;
+			/*cout << a_arr[s[L - 1] + i] << " ";*/
+		}
+		//cout << a_arr[s[L - 1] + i] << " ";
+	}
+	//cout << endl;
+	//cout << index << " " << max << endl;
+	return index;
+}
+//*****************************
 //
 // Topology
 //
