@@ -14,6 +14,23 @@
 #include <string>
 #include <array>
 
+#include <random>
+
+//
+// Random
+//
+class Random {
+  private:
+    std::mt19937 *mGen;
+    std::uniform_real_distribution<double> *mDist;
+
+  public:
+    Random();
+    double next();
+    int nextInt(int min, int max);
+    bool nextBool();
+};
+
 class Topology {
 	private:
 		std::vector<int> *ml;
@@ -39,6 +56,10 @@ public:
 	virtual void train(T *a, T *b) = 0;
 	virtual void feedForward(T *a, T *b) = 0;
 	virtual void destroy() = 0;
+	virtual T obtainError(T *b) = 0;
+
+	virtual void print_out() = 0;
+
 private:
 	virtual void calc_feedForward() = 0;
 };
@@ -71,9 +92,16 @@ public:
 	void train(double *a, double *b);
 	void feedForward(double *a, double *b);
 	void destroy();
+
+	double obtainError(double *b);
+	void print_out();
+
+
 	AnnSerialDBL() {};
 
 	double* getWeights();
+	double* getA();
+
 
 //tempppp
 int getMaxOutput();
@@ -104,7 +132,7 @@ public:
 
 	double * getOutput(int index);
 
-	int getNumberOfSamples() { return samples; }
+	int getNumberOfSamples() { return data.size(); }
 
 	void addSample(Sample_Double sample);
 
@@ -114,7 +142,6 @@ protected:
 	std::vector<Sample_Double> data;
 	int inputs;
 	int outputs;
-	int samples = 0;
 };
 
 class AnnSerialFLT : public AnnBase<float> {
@@ -145,6 +172,11 @@ public:
 	void train(float *a, float *b);
 	void feedForward(float *a, float *b);
 	void destroy();
+
+	float obtainError(float *b);
+	void print_out();
+
+
 	AnnSerialFLT() {};
 
 	float* getWeights();

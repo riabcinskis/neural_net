@@ -6,6 +6,31 @@
 #include "ann.h"
 
 using namespace std;
+
+//
+// Random
+//
+Random::Random(){
+  mGen = new std::mt19937();
+  mDist = new std::uniform_real_distribution<double>(0., 1.);
+}
+
+double Random::next(){
+  return (*mDist)(*mGen);
+}
+
+int Random::nextInt(int min, int max){
+  double range = max - min;
+  double r = range * next();
+  return min + (int)(r+0.5);
+}
+
+bool Random::nextBool(){
+  if(next() >= 0) return true;
+  return false;
+}
+
+
 //temp
 int AnnSerialDBL::getMaxOutput(){
 	double max = 0;
@@ -74,11 +99,13 @@ int Topology::getOutputNeuronCount(){
 /* sudeti funkcijas i private */
 
 double AnnSerialDBL::f(double x) {
+	//return atan(x)/M_PI + 0.5;
 	double y = 1 + exp(-x);
 	return 1 / y;
 }
 
 double AnnSerialDBL::f_deriv(double x) {
+	//return 1.0 / (1+x*x);
 	return exp(-x) / pow((1 + exp(-x)), 2);
 }
 
@@ -126,7 +153,6 @@ double * Data_Double::getOutput(int index)
 void Data_Double::addSample(Sample_Double sample)
 {
 	data.push_back(sample);
-	samples++;
 }
 
 void Data_Double::setSizes(int input_size, int output_size)
@@ -172,6 +198,8 @@ void AnnSerialDBL::init(double w_arr_1[] = NULL)
 {
   L = cTopology->getLayerCount();
 
+	Random *rnd = new Random();
+
 	//Neuronu kiekiai sluoksnyje
 	for (int i = 0; i < L; i++) {
 		l[i] = cTopology->getLayerSize(i) + 1;
@@ -201,7 +229,7 @@ void AnnSerialDBL::init(double w_arr_1[] = NULL)
 		}
 		if (w_arr_1 == NULL) {
 			for (int j = 0; j < W[i]; j++) {
-				w_arr[sw[i] + j] = (double)rand() / double(RAND_MAX);
+				w_arr[sw[i] + j] = (rnd->next()*2-1); // (double)rand() / double(RAND_MAX);
 				dw_arr[sw[i] + j] = 0;
 			}
 		}
@@ -217,6 +245,8 @@ void AnnSerialDBL::init(double w_arr_1[] = NULL)
 
 void AnnSerialDBL::train(double *a, double *b)
 {
+
+
 	for (int i = 0; i < inputCount; i++) {
 		a_arr[i] = a[i];
 	}
@@ -226,6 +256,7 @@ void AnnSerialDBL::train(double *a, double *b)
 	}
 
 	calc_feedForward();
+
 
 	for (int i = 0; i < outputCount; i++) {
 		t_arr[i] = b[i];
@@ -241,6 +272,8 @@ void AnnSerialDBL::train(double *a, double *b)
 			}
 		}
 	}
+
+
 }
 
 void AnnSerialDBL::feedForward(double *a, double *b)
@@ -257,6 +290,27 @@ void AnnSerialDBL::feedForward(double *a, double *b)
 
 	for (int i = 0; i<outputCount; i++)
 		b[i] = a_arr[s[L - 1] + i];
+}
+
+double AnnSerialDBL::obtainError(double *b){
+	double error = 0;
+
+	for(int i = 0; i < l[L-1] - 1; i++){
+		//printf("%f\t %.15e\n", b[i], a_arr[s[L-1] + i]);
+
+		double tmp = b[i] - a_arr[s[L-1] + i];
+		error += tmp*tmp;
+	}
+	return error;
+}
+
+void AnnSerialDBL::print_out(){
+	printf("z = %e\n", z_arr[s[L-1]+0]);
+	printf("g = %e\n", gjl[s[L-1]+0]);
+
+	for(int i = 0; i < l[L-2]; i++){
+		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
+	}
 }
 
 void AnnSerialDBL::calc_feedForward()
@@ -306,6 +360,10 @@ double* AnnSerialDBL::getWeights(){
 	return w_arr;
 }
 
+double* AnnSerialDBL::getA(){
+	return a_arr;
+}
+
 double AnnSerialDBL::delta_w(double grad, double dw) {
 	return -mEta*grad + mAlpha*dw;
 }
@@ -322,12 +380,14 @@ double AnnSerialDBL::delta_w(double grad, double dw) {
 //*************
 
 float AnnSerialFLT::f(float x) {
+		//return atanf(x)/M_PI + 0.5;
 	float y = 1 + exp(-x);
 	return 1 / y;
 }
 
 float AnnSerialFLT::f_deriv(float x) {
-	return exp(-x) / pow((1 + exp(-x)), 2);
+	//return  1.0 / (1.0+ x*x);
+	 return exp(-x) / pow((1 + exp(-x)), 2);
 }
 
 float AnnSerialFLT::gL(float a, float z, float t) {
@@ -465,6 +525,9 @@ void AnnSerialFLT::init(float w_arr_1[] = NULL)
 
 void AnnSerialFLT::train(float *a, float *b)
 {
+
+
+
 	for (int i = 0; i < inputCount; i++) {
 		a_arr[i] = a[i];
 	}
@@ -474,6 +537,8 @@ void AnnSerialFLT::train(float *a, float *b)
 	}
 
 	calc_feedForward();
+
+
 
 	for (int i = 0; i < outputCount; i++) {
 		t_arr[i] = b[i];
@@ -505,6 +570,19 @@ void AnnSerialFLT::feedForward(float *a, float *b)
 
 	for (int i = 0; i<outputCount; i++)
 		b[i] = a_arr[s[L - 1] + i];
+}
+
+float AnnSerialFLT::obtainError(float *b){
+	float error = 0;
+	for(int i = 0; i < l[L-1] - 1; i++){
+		float tmp = b[i] - a_arr[s[L-1] + i];
+		error += tmp*tmp;
+	}
+	return error;
+}
+
+void AnnSerialFLT::print_out(){
+
 }
 
 void AnnSerialFLT::calc_feedForward()

@@ -1,0 +1,51 @@
+\documentclass{article}
+
+\usepackage{pgfplots}
+\usepackage{tikz}
+
+
+\begin{document}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ymode = normal,
+    axis lines = left,
+    xlabel = {time, t},
+    ylabel = {density},
+    xmin = 0, xmax = 60000,
+    ymin = 0, ymax = 5.0,
+    %xtick = {2, 3, 4, 5, 6, 7, 8, 9, 10},
+    %ytick = {0, 10, 100, 1000},
+    xmajorgrids=true,
+    ymajorgrids=true,
+    grid style=dashed,
+]
+%Below the red parabola is defined
+\addplot[color=black] table [x=a, y=b] {data.txt};
+    \addlegendentry{W1}
+
+
+
+
+%\addplot[color=red] table [x=t, y=density]{files/ph/W1/Ph-10-EM-density.pgf};
+%    \addlegendentry{PH(10), EM gen.}
+
+%\addplot[color=green] table [x=t, y=density]{files/ph/W1/Ph-10-EM-uni-density.pgf};
+%    \addlegendentry{PH(10), EM gen. uni.}
+
+
+%\addplot[color=blue] table [x=t, y=density] {files/ph/W1/HErD-10-EM-density.pgf};
+%    \addlegendentry{HErD(10), EM}
+
+
+\end{axis}
+\end{tikzpicture}
+\caption{W1 density function.}
+\label{fig:runtimes}
+\end{figure}
+
+\end{document}
+
+

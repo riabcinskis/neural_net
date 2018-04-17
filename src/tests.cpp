@@ -50,6 +50,10 @@ bool test_forward_Double(){
 
   serialDBL->init(warr);
 
+
+
+
+
   double *input = new double[2];
   input[0] = 1;
   input[1] = 2;
@@ -64,7 +68,8 @@ bool test_forward_Double(){
   //              0.73622649825740200000
   if(output[0] != 0.73622649825740249518) return false;
 
-
+  if(serialDBL->getA()[2] != 1) return false;
+  if(serialDBL->getA()[5] != 1) return false;
 
   delete [] warr;
   delete [] input;
@@ -148,6 +153,10 @@ bool test_backward_Double(){
   if(warr2[7] != 0.29139555061784666590) return false;
   //             0.18853137822738400
   if(warr2[8] != 0.18853137822738402773) return false;
+
+
+  if(serialDBL->getA()[2] != 1) return false;
+  if(serialDBL->getA()[5] != 1) return false;
 
   delete [] warr;
   delete [] input;

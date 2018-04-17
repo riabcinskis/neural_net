@@ -19,7 +19,7 @@ public:
 	{
 		inputs = 2;
 		outputs = 2;
-		samples = 0;
+	
 	}
 	void printInputs(int index);
 
@@ -53,9 +53,7 @@ class PictureData : public Data_Double
 public:
     PictureData()
     {
-        inputs = 756;
-        outputs = 10;
-        samples = 0;
+
     }
     void readMnist(string filename, vector<double*> &arr);
     void readMnistLabel(string filename, vector<double> &vec);

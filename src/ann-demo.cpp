@@ -76,6 +76,9 @@ int XOR_Float::getResult(int index){
 void PictureData::readMnist(string filename, vector<double*> &arr)
 {
     ifstream file (filename, ios::binary);
+
+		outputs = 10;
+
     if (file.is_open())
     {
         int magic_number = 0;
@@ -90,10 +93,12 @@ void PictureData::readMnist(string filename, vector<double*> &arr)
         n_rows = reverseInt(n_rows);
         file.read((char*) &n_cols, sizeof(n_cols));
         n_cols = reverseInt(n_cols);
+				inputs = n_rows*n_cols;
 				printf("%d\n", number_of_images);
+
         for(int i = 0; i < number_of_images; ++i)
         {
-            double* tp = new double[784];
+            double* tp = new double[inputs];
             int index;
             for(int r = 0; r < n_rows; r++)
             {
@@ -103,12 +108,14 @@ void PictureData::readMnist(string filename, vector<double*> &arr)
                     file.read((char*) &temp, sizeof(temp));
                     index = r * n_cols + c;
                     tp[index] = ((double)temp / 255 * 1.0);
-										printf("tp[%d]=%f\n",index, tp[index]);
+										//printf("tp[%d]=%f\n",index, tp[index]);
                 }
             }
             arr.push_back(tp);
         }
-    }
+    }else{
+			printf("*** failed to open file \'%s\'\n", filename.c_str());
+		}
 }
 
 //Nuskaito labelius is failo
@@ -129,7 +136,9 @@ void PictureData::readMnistLabel(string filename, vector<double> &vec)
             file.read((char*) &temp, sizeof(temp));
             vec.push_back((double)temp);
         }
-    }
+    }else{
+			printf("*** failed to open file \'%s\'\n", filename.c_str());
+		}
 }
 
 
@@ -149,22 +158,24 @@ void xor_sample(){
   Topology *topology = new Topology();
 	topology->addLayer(2);
 	topology->addLayer(5);
-	topology->addLayer(4);
 	topology->addLayer(2);
 
 
 
 	AnnSerialDBL* SerialDBL=new AnnSerialDBL();
 
-	double alpha = 0.7;
-  double eta = 0.25;
+	double alpha = 0.95;
+  double eta = 0.9;
 	SerialDBL -> prepare(topology, alpha, eta);
 
 	SerialDBL->init(NULL);
 
+SerialDBL->print_out();
+
 	XOR xo;
-	int dataCount=5000;
+	int dataCount=500;
 	xo.generate(dataCount);
+
 	SerialDBL->train(xo.getInput(0), xo.getOutput(0));
 
 
@@ -173,18 +184,29 @@ void xor_sample(){
 	}
 
 	//Checking results(all combinations 0 and 1)
+	double *target = new double[2];
+	double *output = new double[2];
+
+
+SerialDBL->print_out();
+
 	for (double i = 0; i < 2; i++) {
 		for (double j = 0; j < 2; j++) {
 			double input[] = { i ,j };
-			double output[] = { 0,0 };
+			target[0] = i==j;
+			target[1] = i!=j;
+
 
 			SerialDBL->feedForward(input, output);
-			Sample_Double temp={input,output};
-			xo.addSample(temp);
-			printf("inout:  %.2f  %.2f\n",xo.getInput(dataCount+i*2+j)[0],xo.getInput(dataCount+i*2+j)[1] );
-			printf("output: %.2f  %.2f\n",xo.getOutput(dataCount+i*2+j)[0],xo.getOutput(dataCount+i*2+j)[1] );
-			printf("Result: %d\n", xo.getResult(dataCount+i*2+j));
-			printf("---------------------------------\n");
+			double error = SerialDBL->obtainError(target);
+			printf("error = %e\n", error);
+
+			//Sample_Double temp={input,output};
+			//xo.addSample(temp);
+			// printf("inout:  %.2f  %.2f\n",xo.getInput(dataCount+i*2+j)[0],xo.getInput(dataCount+i*2+j)[1] );
+			// printf("output: %.2f  %.2f\n",xo.getOutput(dataCount+i*2+j)[0],xo.getOutput(dataCount+i*2+j)[1] );
+			// printf("Result: %d\n", xo.getResult(dataCount+i*2+j));
+			// printf("---------------------------------\n");
 		}
 	}
 
@@ -241,10 +263,10 @@ void xor_sample_Float(){
 }
 
 void pic_sample() {
-	string train_labels = "train-labels.idx1-ubyte";
-  string train_images = "train-images.idx3-ubyte";
-  string test_labels = "t10k-labels.idx1-ubyte";
-  string test_images = "t10k-images.idx3-ubyte";
+	string train_labels = "./../files/train-labels.idx1-ubyte";
+  string train_images = "./../files/train-images.idx3-ubyte";
+  string test_labels = "./../files/t10k-labels.idx1-ubyte";
+  string test_images = "./../files/t10k-images.idx3-ubyte";
 
 	Topology *topology = new Topology();
 	topology->addLayer(784);
@@ -253,18 +275,38 @@ void pic_sample() {
 
 	AnnSerialDBL* serialDBL=new AnnSerialDBL();
 
-	double alpha = 0.2;
+	double alpha = 0.9;
   double eta = 0.5;
 	serialDBL -> prepare(topology, alpha, eta);
 
 	serialDBL->init(NULL);
 
 	PictureData pictures;
+
+	vector<double*> arr;
+	vector<double> vec;
+	vector<double*> targets;
+
+	// pictures.readMnist(train_images, arr);
+	// pictures.readMnistLabel(train_labels, vec);
+  //
+	// double *pic = arr[0];
+  //
+	// double label = vec[0];
+  //
+	// for(int row = 0; row < 28; row++){
+	// 	for(int col = 0; col < 28; col++)
+	// 		printf("%s", pic[row*28+col] > 0.3 ? "X" : " ");
+	// 	printf("\n");
+	// }
+	// printf("label = %f\n", label);
+
+
 	//pictures.readMnist(picFile,arr);
 //	pictures.readMnistLabel(labFile,vec);
 
-	pictures.trainData(pictures, train_images, train_labels, serialDBL);
-  pictures.testNet(pictures, test_images, test_labels, serialDBL);
+	 pictures.trainData(pictures, train_images, train_labels, serialDBL);
+  // pictures.testNet(pictures, test_images, test_labels, serialDBL);
 }
 
 void PictureData::trainData(PictureData& pictures, string picFile, string labFile, AnnSerialDBL* SerialDBL){
@@ -281,24 +323,69 @@ void PictureData::trainData(PictureData& pictures, string picFile, string labFil
     for (int i = 0; i < vec.size(); i++) {
         pushTarget(vec[i], targets, ft);
         Sample_Double sample = {arr[i], targets[i]};
+
         pictures.addSample(sample);
     }
 		printf("Sample count : %d\n", pictures.getNumberOfSamples());
     cout << "Train data nuskaityta" << endl;
 
-    for (int j = 0; j < 1; j++)
+		FILE *file = fopen("data.txt", "w");
+		fprintf(file, "a\tb\n");
+
+SerialDBL->print_out();
+printf("\n");
+		int c= 0;
+		double *tmpArr = new double[10];
+    for (int j = 0; j < 30; j++)
     {
         for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
+					//printf("count = %d\n", pictures.getNumberOfSamples());
+					c++;
+				//	if(c == 5) break;
             SerialDBL->train(pictures.getInput(i), pictures.getOutput(i));
-            std::cout << "/* message */" << '\n' << vec[i] << " " << SerialDBL->getMaxOutput() << endl;
+						double error = SerialDBL->obtainError(pictures.getOutput(i));
+						SerialDBL->feedForward(pictures.getInput(i), tmpArr);
+						if(error > 0.5){
+							for(int k  = 0; k < 10; k++)
+								printf("%f, %f\n", pictures.getOutput(i)[k], tmpArr[k]);
+
+
+							if(j == 4 && i > 58000){
+
+								for(int row = 0; row < 28; row++){
+									for(int col = 0; col < 28; col++)
+										printf("%s", pictures.getInput(i)[row*28+col] > 0.3 ? "X" : " ");
+									printf("\n");
+								}
+								//printf("label = %f\n", label);
+
+							}
+									printf("\n");
+						}
+
+						if(c % 600 == 0){
+							fprintf(file, "%d\t%e\n", c, error);
+
+							// if(error > 0.5){
+              //
+							// }
+
+						}
+
+						//printf("print_out\n");
+						//SerialDBL->print_out();
+						//printf("--\n");
+            //std::cout << "/* message */" << '\n' << vec[i] << " " << SerialDBL->getMaxOutput() << endl;
             //fr << targets[i][0] << " " << targets[i][1] << " " << targets[i][2]
             //     << " " << targets[i][3] << " " << targets[i][4] << " " << targets[i][5]
             //   << " " << targets[i][6] << " " << targets[i][7] << " " << targets[i][8]
             //   << " " << targets[i][9] << endl;
             //fr << endl;
         }
+				printf("+\n");
         cout << j + 1 << " epocha baigta." << endl;
     }
+		fclose(file);
     fr.close();
     ft.close();
     targets.clear();
@@ -313,7 +400,7 @@ void PictureData::pushTarget(double a, vector<double*> &targets, ofstream &fr)
 	//fr << a << endl;
 	for (int i = 0; i < 10; i++)
 	{
-		if (i == a)
+		if (i == a )
 			temp[i] = 1;
 		else
 			temp[i] = 0;
@@ -378,16 +465,16 @@ int main (int c, char *v[]) {
 
   printf("ANN - demo\n\n");
 
-  if(run_tests() == false) return 0;
+//  if(run_tests() == false) return 0;
 
 
 	printf("\n\n\nDouble rezultatai: \n");
   xor_sample();
 
-	printf("\n\n\nFloat rezultatai: \n");
-	xor_sample_Float();
-
-  run_cuda_sample();
+	// printf("\n\n\nFloat rezultatai: \n");
+	// xor_sample_Float();
+  //
+  // run_cuda_sample();
 
 	pic_sample();
 
