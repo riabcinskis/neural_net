@@ -107,7 +107,6 @@ public:
 	double* getA();
 
   void printf_Network(string filename);
-  void readf_Network();
 
 //tempppp
 int getMaxOutput();
@@ -120,6 +119,8 @@ private:
 	double gL(double a, double z, double t);
 	double w_gradient(int layer_id, int w_i, int w_j);
 	void calc_gjl();
+
+  void readf_Network();
 };
 
 struct Sample_Double
