@@ -160,9 +160,7 @@ void xor_sample(){
 	topology->addLayer(5);
 	topology->addLayer(2);
 
-
-
-	AnnSerialDBL* SerialDBL=new AnnSerialDBL("");
+	AnnSerialDBL* SerialDBL=new AnnSerialDBL();
 
 	double alpha = 0.95;
   double eta = 0.9;
@@ -170,7 +168,7 @@ void xor_sample(){
 
 	SerialDBL->init(NULL);
 
-SerialDBL->print_out();
+	SerialDBL->print_out();
 
 	XOR xo;
 	int dataCount=500;
@@ -188,7 +186,7 @@ SerialDBL->print_out();
 	double *output = new double[2];
 
 
-SerialDBL->print_out();
+	SerialDBL->print_out();
 
 	for (double i = 0; i < 2; i++) {
 		for (double j = 0; j < 2; j++) {
@@ -270,22 +268,23 @@ void pic_sample() {
 
 	Topology *topology = new Topology();
 	topology->addLayer(784);
-	topology->addLayer(16);
+	topology->addLayer(300);
 	topology->addLayer(10);
 
-	AnnSerialDBL* serialDBL=new AnnSerialDBL("");
+	AnnSerialDBL* serialDBL=new AnnSerialDBL();
 
-	double alpha = 0.9;
-  double eta = 0.5;
+	double alpha = 0.8;
+  double eta = 0.005;
 	serialDBL -> prepare(topology, alpha, eta);
 
 	serialDBL->init(NULL);
 
+
 	PictureData pictures;
 
-	vector<double*> arr;
-	vector<double> vec;
-	vector<double*> targets;
+	// vector<double*> arr;
+	// vector<double> vec;
+	// vector<double*> targets;
 
 	// pictures.readMnist(train_images, arr);
 	// pictures.readMnistLabel(train_labels, vec);
@@ -306,7 +305,7 @@ void pic_sample() {
 //	pictures.readMnistLabel(labFile,vec);
 
 	 pictures.trainData(pictures, train_images, train_labels, serialDBL);
-  // pictures.testNet(pictures, test_images, test_labels, serialDBL);
+   // pictures.testNet(pictures, test_images, test_labels, serialDBL);
 }
 
 void PictureData::trainData(PictureData& pictures, string picFile, string labFile, AnnSerialDBL* SerialDBL){
@@ -315,10 +314,10 @@ void PictureData::trainData(PictureData& pictures, string picFile, string labFil
     vector<double*> targets;
     readMnist(picFile, arr);
     readMnistLabel(labFile, vec);
-    ofstream fr;
-    fr.open("Apmokymai.txt");
-    ofstream ft;
-    ft.open("Targets.txt");
+     ofstream fr;
+     fr.open("Apmokymai.txt");
+     ofstream ft;
+     ft.open("Targets.txt");
 
     for (int i = 0; i < vec.size(); i++) {
         pushTarget(vec[i], targets, ft);
@@ -332,35 +331,45 @@ void PictureData::trainData(PictureData& pictures, string picFile, string labFil
 		FILE *file = fopen("data.txt", "w");
 		fprintf(file, "a\tb\n");
 
-SerialDBL->print_out();
-printf("\n");
+		SerialDBL->print_out();
+		printf("\n");
 		int c= 0;
 		double *tmpArr = new double[10];
-    for (int j = 0; j < 30; j++)
+
+		int epoch_count=300;
+		double *epoch_error=new double[epoch_count];
+		double *max_epoch_error=new double[epoch_count];
+    for (int j = 0; j < epoch_count; j++)
     {
         for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
 					//printf("count = %d\n", pictures.getNumberOfSamples());
 					c++;
 				//	if(c == 5) break;
             SerialDBL->train(pictures.getInput(i), pictures.getOutput(i));
+
 						double error = SerialDBL->obtainError(pictures.getOutput(i));
+						epoch_error[j]+=error;
+						if(max_epoch_error[j]<error){
+							max_epoch_error[j]=error;
+						}
+
 						SerialDBL->feedForward(pictures.getInput(i), tmpArr);
 						if(error > 0.5){
 							for(int k  = 0; k < 10; k++)
-								printf("%f, %f\n", pictures.getOutput(i)[k], tmpArr[k]);
+								//printf("%f, %f\n", pictures.getOutput(i)[k], tmpArr[k]);
 
 
 							if(j == 4 && i > 58000){
 
 								for(int row = 0; row < 28; row++){
-									for(int col = 0; col < 28; col++)
-										printf("%s", pictures.getInput(i)[row*28+col] > 0.3 ? "X" : " ");
-									printf("\n");
+								//	for(int col = 0; col < 28; col++)
+										//printf("%s", pictures.getInput(i)[row*28+col] > 0.3 ? "X" : " ");
+								//	printf("\n");
 								}
 								//printf("label = %f\n", label);
 
 							}
-									printf("\n");
+								//	printf("\n");
 						}
 
 						if(c % 600 == 0){
@@ -371,6 +380,8 @@ printf("\n");
 							// }
 
 						}
+
+
 
 						//printf("print_out\n");
 						//SerialDBL->print_out();
@@ -383,9 +394,18 @@ printf("\n");
             //fr << endl;
         }
 				printf("+\n");
+				printf("%d\t%.10f\t%.10f\n",j+1,epoch_error[j]/epoch_count,max_epoch_error[j]);
         cout << j + 1 << " epocha baigta." << endl;
     }
-		fclose(file);
+fclose(file);
+		FILE *file1 = fopen("errors.txt", "w");
+		for(int i=0;i<epoch_count;i++){
+				fprintf(file1, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/epoch_count,max_epoch_error[i]);
+		}
+
+		SerialDBL->printf_Network("pic_apmokyta_3000epoch.bin");
+
+		fclose(file1);
     fr.close();
     ft.close();
     targets.clear();
@@ -469,14 +489,14 @@ int main (int c, char *v[]) {
 
 
 	printf("\n\n\nDouble rezultatai: \n");
-  //xor_sample();
+//  xor_sample();
 
 	// printf("\n\n\nFloat rezultatai: \n");
 	// xor_sample_Float();
   //
   // run_cuda_sample();
 
-	//pic_sample();
+	pic_sample();
 
  return 0;
 }
