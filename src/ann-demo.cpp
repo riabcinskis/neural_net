@@ -77,7 +77,7 @@ void PictureData::readMnist(string filename, vector<double*> &arr)
 {
     ifstream file (filename, ios::binary);
 
-		outputs = 10;
+	//	outputs = 10;
 
     if (file.is_open())
     {
@@ -94,7 +94,7 @@ void PictureData::readMnist(string filename, vector<double*> &arr)
         file.read((char*) &n_cols, sizeof(n_cols));
         n_cols = reverseInt(n_cols);
 				inputs = n_rows*n_cols;
-				printf("%d\n", number_of_images);
+			//	printf("%d\n", number_of_images);
 
         for(int i = 0; i < number_of_images; ++i)
         {
@@ -279,195 +279,108 @@ void pic_sample() {
 
 	serialDBL->init(NULL);
 
-
 	PictureData pictures;
 
-	// vector<double*> arr;
-	// vector<double> vec;
-	// vector<double*> targets;
+	pictures.ReadData(train_images,train_labels);
 
-	// pictures.readMnist(train_images, arr);
-	// pictures.readMnistLabel(train_labels, vec);
-  //
-	// double *pic = arr[0];
-  //
-	// double label = vec[0];
-  //
-	// for(int row = 0; row < 28; row++){
-	// 	for(int col = 0; col < 28; col++)
-	// 		printf("%s", pic[row*28+col] > 0.3 ? "X" : " ");
-	// 	printf("\n");
-	// }
-	// printf("label = %f\n", label);
+	pictures.Train(serialDBL);
 
+	serialDBL->printf_Network("pic_apmokyta_200epoch.bin");
 
-	//pictures.readMnist(picFile,arr);
-//	pictures.readMnistLabel(labFile,vec);
+	delete serialDBL;
 
-	 pictures.trainData(pictures, train_images, train_labels, serialDBL);
-   // pictures.testNet(pictures, test_images, test_labels, serialDBL);
+	AnnSerialDBL* test_serialDBL=new AnnSerialDBL("pic_apmokyta_200epoch.bin");
+
+	alpha = 0.8;
+	eta = 0.005;
+	test_serialDBL-> prepare(topology, alpha, eta);
+
+	test_serialDBL->init(NULL);
+
+	pictures.Test(serialDBL);
 }
 
-void PictureData::trainData(PictureData& pictures, string picFile, string labFile, AnnSerialDBL* SerialDBL){
-    vector<double*> arr;
-    vector<double> vec;
-    vector<double*> targets;
-    readMnist(picFile, arr);
-    readMnistLabel(labFile, vec);
-     ofstream fr;
-     fr.open("Apmokymai.txt");
-     ofstream ft;
-     ft.open("Targets.txt");
+void PictureData::ReadData(string Mnist_file, string MnistLabel_file){
+	vector<double*> arr;
+	vector<double> vec;
+	vector<double*> targets;
+	readMnist(Mnist_file, arr);
+	readMnistLabel(MnistLabel_file, vec);
 
-    for (int i = 0; i < vec.size(); i++) {
-        pushTarget(vec[i], targets, ft);
-        Sample_Double sample = {arr[i], targets[i]};
+	for (int i = 0; i < vec.size(); i++) {
+			pushTarget(vec[i], targets);
+			Sample_Double sample = {arr[i], targets[i]};
+			addSample(sample);
+	}
+	targets.clear();
+	arr.clear();
+	vec.clear();
+}
 
-        pictures.addSample(sample);
-    }
-		printf("Sample count : %d\n", pictures.getNumberOfSamples());
-    cout << "Train data nuskaityta" << endl;
+void PictureData::Train(AnnSerialDBL* serialDBL){
+		  double *tmpArr = new double[10];
 
-		FILE *file = fopen("data.txt", "w");
-		fprintf(file, "a\tb\n");
+			int epoch_count=10;
+			double *epoch_error=new double[epoch_count];
+			double *max_epoch_error=new double[epoch_count];
 
-		SerialDBL->print_out();
-		printf("\n");
-		int c= 0;
-		double *tmpArr = new double[10];
+	    for (int j = 0; j < epoch_count; j++){
+        for (int i = 0; i < getNumberOfSamples(); i++) {
 
-		int epoch_count=300;
-		double *epoch_error=new double[epoch_count];
-		double *max_epoch_error=new double[epoch_count];
-    for (int j = 0; j < epoch_count; j++)
-    {
-        for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
-					//printf("count = %d\n", pictures.getNumberOfSamples());
-					c++;
-				//	if(c == 5) break;
-            SerialDBL->train(pictures.getInput(i), pictures.getOutput(i));
+          serialDBL->train(getInput(i), getOutput(i));
 
-						double error = SerialDBL->obtainError(pictures.getOutput(i));
-						epoch_error[j]+=error;
-						if(max_epoch_error[j]<error){
-							max_epoch_error[j]=error;
-						}
+					double error = serialDBL->obtainError(getOutput(i));
+					//printf("%.10f\n", error);
+					epoch_error[j]+=error;
 
-						SerialDBL->feedForward(pictures.getInput(i), tmpArr);
-						if(error > 0.5){
-							for(int k  = 0; k < 10; k++)
-								//printf("%f, %f\n", pictures.getOutput(i)[k], tmpArr[k]);
-
-
-							if(j == 4 && i > 58000){
-
-								for(int row = 0; row < 28; row++){
-								//	for(int col = 0; col < 28; col++)
-										//printf("%s", pictures.getInput(i)[row*28+col] > 0.3 ? "X" : " ");
-								//	printf("\n");
-								}
-								//printf("label = %f\n", label);
-
-							}
-								//	printf("\n");
-						}
-
-						if(c % 600 == 0){
-							fprintf(file, "%d\t%e\n", c, error);
-
-							// if(error > 0.5){
-              //
-							// }
-
-						}
-
-
-
-						//printf("print_out\n");
-						//SerialDBL->print_out();
-						//printf("--\n");
-            //std::cout << "/* message */" << '\n' << vec[i] << " " << SerialDBL->getMaxOutput() << endl;
-            //fr << targets[i][0] << " " << targets[i][1] << " " << targets[i][2]
-            //     << " " << targets[i][3] << " " << targets[i][4] << " " << targets[i][5]
-            //   << " " << targets[i][6] << " " << targets[i][7] << " " << targets[i][8]
-            //   << " " << targets[i][9] << endl;
-            //fr << endl;
-        }
+					if(max_epoch_error[j]<error){
+						max_epoch_error[j]=error;
+					}
+				}
 				printf("+\n");
-				printf("%d\t%.10f\t%.10f\n",j+1,epoch_error[j]/epoch_count,max_epoch_error[j]);
-        cout << j + 1 << " epocha baigta." << endl;
-    }
-fclose(file);
-		FILE *file1 = fopen("errors.txt", "w");
-		for(int i=0;i<epoch_count;i++){
-				fprintf(file1, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/epoch_count,max_epoch_error[i]);
-		}
+				printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/getNumberOfSamples(),max_epoch_error[j]);
+			}
 
-		SerialDBL->printf_Network("pic_apmokyta_3000epoch.bin");
+			FILE *file = fopen("errors.txt", "w");
 
-		fclose(file1);
-    fr.close();
-    ft.close();
-    targets.clear();
-    arr.clear();
-    vec.clear();
-    cout << "Apmokymas baigtas" << endl;
+			for(int i=0;i<epoch_count;i++){
+					fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/epoch_count,max_epoch_error[i]);
+			}
+
+			fclose(file);
 }
 
-void PictureData::pushTarget(double a, vector<double*> &targets, ofstream &fr)
+void PictureData::Test(AnnSerialDBL* serialDBL){
+	double *tmpArr = new double[10];
+
+	for (int i = 0; i < 10; i++) {
+		serialDBL->feedForward(getInput(i), tmpArr);
+
+		for(int k  = 0; k < 10; k++)
+			printf("%f, %f\n", getOutput(i)[k], tmpArr[k]);
+
+		for(int row = 0; row < 28; row++){
+			for(int col = 0; col < 28; col++)
+				printf("%s", getInput(i)[row*28+col] > 0.3 ? "X" : " ");
+			printf("\n");
+		}
+	}
+
+	delete[] tmpArr;
+}
+
+void PictureData::pushTarget(double a, vector<double*> &targets)
 {
 	double* temp = new double[10];
-	//fr << a << endl;
 	for (int i = 0; i < 10; i++)
 	{
 		if (i == a )
 			temp[i] = 1;
 		else
 			temp[i] = 0;
-		//fr << temp[i] << " ";
 	}
-	//fr << endl;
 
 	targets.push_back(temp);
-}
-
-void PictureData::testNet(PictureData& pictures, string picFile, string labFile, AnnSerialDBL* SerialDBL){
-    vector<double*> arr;
-    vector<double> vec;
-    //vector<double*> targets;
-    //double* targets = new double[10];
-    pictures.readMnist(picFile, arr);
-    pictures.readMnistLabel(labFile, vec);
-    ofstream fr;
-    fr.open("Text.txt");
-    ofstream ft;
-    ft.open("Targets2.txt");
-
-
-    for (int i = 0; i < 10/*vec.size()*/; i++) {
-        //pushTarget(vec[i], targets, ft);
-        double* targets = new double[10];
-        for (int j = 0; j < 10; j++)
-        {
-            if (vec[i] == j)
-                targets[j] = 1;
-            else
-                targets[j] = 0;
-        }
-        SerialDBL->feedForward(arr[i], targets);
-        /*ft << vec[i] << endl;
-        ft << targets[0] << " " << targets[1] << " " << targets[2]
-             << " " << targets[3] << " " << targets[4] << " " << targets[5]
-             << " " << targets[6] << " " << targets[7] << " " << targets[8]
-             << " " << targets[9] << endl;
-        ft << endl;
-        fr << i << " - " << vec[i] << " " << SerialDBL.getMaxOutput() << endl;*/
-        delete[] targets;
-    }
-
-    cout << "Testavimas baigtas" << endl;
-    fr.close();
-    ft.close();
 }
 
 //Paveiksliuku nuskaitymui
@@ -487,8 +400,6 @@ int main (int c, char *v[]) {
 
  if(run_tests() == false) return 0;
 
-
-	printf("\n\n\nDouble rezultatai: \n");
 //  xor_sample();
 
 	// printf("\n\n\nFloat rezultatai: \n");

@@ -19,7 +19,7 @@ public:
 	{
 		inputs = 2;
 		outputs = 2;
-	
+
 	}
 	void printInputs(int index);
 
@@ -53,14 +53,18 @@ class PictureData : public Data_Double
 public:
     PictureData()
     {
-
+			inputs = 784;
+			outputs = 10;
     }
+
+		void ReadData(string Mnist_file, string MnistLabel_file);
+		void Train(AnnSerialDBL* serialDBL);
+		void Test(AnnSerialDBL* serialDBL);
+private:
     void readMnist(string filename, vector<double*> &arr);
     void readMnistLabel(string filename, vector<double> &vec);
 		int reverseInt(int i);
-		void trainData(PictureData& pictures, string picFile, string labFile, AnnSerialDBL* SerialDBL);
-		void testNet(PictureData& pictures, string picFile, string labFile, AnnSerialDBL* SerialDBL);
-		void pushTarget(double a, vector<double*> &targets, ofstream &fr);
+		void pushTarget(double a, vector<double*> &targets);
 };
 
 #endif /* ANN_DEMO_HEADER */
