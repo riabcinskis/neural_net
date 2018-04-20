@@ -162,7 +162,7 @@ void xor_sample(){
 
 
 
-	AnnSerialDBL* SerialDBL=new AnnSerialDBL();
+	AnnSerialDBL* SerialDBL=new AnnSerialDBL("");
 
 	double alpha = 0.95;
   double eta = 0.9;
@@ -273,7 +273,7 @@ void pic_sample() {
 	topology->addLayer(16);
 	topology->addLayer(10);
 
-	AnnSerialDBL* serialDBL=new AnnSerialDBL();
+	AnnSerialDBL* serialDBL=new AnnSerialDBL("");
 
 	double alpha = 0.9;
   double eta = 0.5;
@@ -465,18 +465,18 @@ int main (int c, char *v[]) {
 
   printf("ANN - demo\n\n");
 
-//  if(run_tests() == false) return 0;
+ if(run_tests() == false) return 0;
 
 
 	printf("\n\n\nDouble rezultatai: \n");
-  xor_sample();
+  //xor_sample();
 
 	// printf("\n\n\nFloat rezultatai: \n");
 	// xor_sample_Float();
   //
   // run_cuda_sample();
 
-	pic_sample();
+	//pic_sample();
 
  return 0;
 }

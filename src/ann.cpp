@@ -218,29 +218,41 @@ void AnnSerialDBL::init(double w_arr_1[] = NULL)
 		a_arr[s[i + 1] - 1] = 1;
 	}
 
-	//Svoriu kiekiai l-ame sluoksnyje
-	for (int i = 0; i < L - 1; i++) {
-		W[i] = l[i] * (l[i + 1] - 1);
-		sw[i] = 0;
-		if (i != 0) {
-			for (int j = 0; j < i; j++) {
-				sw[i] += W[j];
-			}
-		}
-		if (w_arr_1 == NULL) {
-			for (int j = 0; j < W[i]; j++) {
-				w_arr[sw[i] + j] = (rnd->next()*2-1); // (double)rand() / double(RAND_MAX);
-				dw_arr[sw[i] + j] = 0;
-			}
-		}
-		else {
-			for (int j = 0; j < W[i]; j++) {
-				w_arr[sw[i] + j] = w_arr_1[sw[i] + j];
-				dw_arr[sw[i] + j] = 0;
-			}
-		}
 
-	}
+  	//Svoriu kiekiai l-ame sluoksnyje
+  	for (int i = 0; i < L - 1; i++) {
+  		W[i] = l[i] * (l[i + 1] - 1);
+  		sw[i] = 0;
+  		if (i != 0) {
+  			for (int j = 0; j < i; j++) {
+  				sw[i] += W[j];
+  			}
+  		}
+    }
+
+
+    if (filename.empty()) {
+      if(w_arr_1==NULL){
+        for (int i = 0; i < L - 1; i++)
+          for (int j = 0; j < W[i]; j++) {
+              w_arr[sw[i] + j] = (rnd->next()*2-1); // (double)rand() / double(RAND_MAX);
+              dw_arr[sw[i] + j] = 0;
+
+
+          }
+      }
+      else {
+        for (int i = 0; i < L - 1; i++)
+          for (int j = 0; j < W[i]; j++) {
+            w_arr[sw[i] + j] = w_arr_1[sw[i] + j];
+            dw_arr[sw[i] + j] = 0.0;
+        }
+      }
+    }
+    else {
+      readf_Network();
+    }
+
 }
 
 void AnnSerialDBL::train(double *a, double *b)
@@ -359,6 +371,9 @@ void AnnSerialDBL::destroy()
 double* AnnSerialDBL::getWeights(){
 	return w_arr;
 }
+double* AnnSerialDBL::getDWeights(){
+	return dw_arr;
+}
 
 double* AnnSerialDBL::getA(){
 	return a_arr;
@@ -369,6 +384,21 @@ double AnnSerialDBL::delta_w(double grad, double dw) {
 }
 
 
+void AnnSerialDBL::printf_Network(string output_filename){
+  FILE * pFile;
+  pFile = fopen("w_and_dw_tests.bin", "wb");
+  fwrite (w_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
+  fwrite (dw_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
+  fclose (pFile);
+}
+
+void AnnSerialDBL::readf_Network(){
+  FILE * pFile;
+  pFile = fopen ("w_and_dw_tests.bin", "rb");
+  (void)fread (w_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
+  (void)fread (dw_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
+  fclose (pFile);
+}
 
 
 

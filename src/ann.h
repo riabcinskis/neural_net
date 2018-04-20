@@ -15,7 +15,7 @@
 #include <array>
 
 #include <random>
-
+using namespace std;
 //
 // Random
 //
@@ -66,6 +66,7 @@ private:
 
 class AnnSerialDBL : public AnnBase<double> {
 private:
+  string filename;
 	Topology* cTopology;
 	double mAlpha;
 	double mEta;
@@ -97,11 +98,16 @@ public:
 	void print_out();
 
 
-	AnnSerialDBL() {};
+	AnnSerialDBL(string filename="") {
+    this->filename=filename;
+  };
 
 	double* getWeights();
+  double* getDWeights();
 	double* getA();
 
+  void printf_Network(string filename);
+  void readf_Network();
 
 //tempppp
 int getMaxOutput();
