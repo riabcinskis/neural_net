@@ -50,7 +50,7 @@ bool test_forward_Double(){
 
   serialDBL->init(warr);
 
-  serialDBL->printf_Network("");
+//  serialDBL->printf_Network("w_DW.bin");
   double *input = new double[2];
   input[0] = 1;
   input[1] = 2;

@@ -386,7 +386,8 @@ double AnnSerialDBL::delta_w(double grad, double dw) {
 
 void AnnSerialDBL::printf_Network(string output_filename){
   FILE * pFile;
-  pFile = fopen("w_and_dw_tests.bin", "wb");
+  const char * c = output_filename.c_str();
+  pFile = fopen(c, "wb");
   fwrite (w_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
   fwrite (dw_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
   fclose (pFile);
@@ -394,7 +395,8 @@ void AnnSerialDBL::printf_Network(string output_filename){
 
 void AnnSerialDBL::readf_Network(){
   FILE * pFile;
-  pFile = fopen ("w_and_dw_tests.bin", "rb");
+  const char * c = filename.c_str();
+  pFile = fopen (c, "rb");
   (void)fread (w_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
   (void)fread (dw_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
   fclose (pFile);
