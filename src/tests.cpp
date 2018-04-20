@@ -375,9 +375,11 @@ bool test_File_Double(){
   if(serialDBL_2->getA()[5] != 1) return false;
 
   delete [] warr;
+  delete [] warr2;
   delete [] input;
   delete [] output;
   delete serialDBL;
+  delete serialDBL_2;
   delete topology;
 }
 
@@ -390,10 +392,8 @@ bool run_tests(){
   bool passed = test_topology(); failCount += passed ? 0 : 1;
   printf("%s - test_topology\n", passed ? "PASSED" : "FAILED");
 
-
   passed = test_forward_Double(); failCount += passed ? 0 : 1;
   printf("%s - test_forward_Double\n", passed ? "PASSED" : "FAILED");
-
 
   passed = test_backward_Double(); failCount += passed ? 0 : 1;
   printf("%s - test_backward_Double\n", passed ? "PASSED" : "FAILED");
