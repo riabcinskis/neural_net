@@ -270,11 +270,20 @@ void pic_sample() {
   string test_labels = "./../files/t10k-labels.idx1-ubyte";
   string test_images = "./../files/t10k-images.idx3-ubyte";
 
-	int epoch_count=5;
+	int epoch_count=1;
 	string network_file="network_data.bin";
 	string avg_max_file="avg_max_error.txt";
 
-	PictureClassification::Train(train_images,train_labels,epoch_count,avg_max_file,network_file);
+
+	double startTime = clock();
+
+  PictureClassification::Train(train_images,train_labels,epoch_count,avg_max_file,network_file);
+
+  double endTime = clock();
+  double runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
+	printf("Apmokymas uztruko: %.5f sec\n", runtime);
+
+
 	PictureClassification::Test(test_images,test_labels, network_file);
 }
 
@@ -305,39 +314,39 @@ void PictureClassification::Train(string Mnist_file,string MnistLabel_file, int 
 }
 
 void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* serialDBL, int epoch_count,string file_avg_max_error){
-		  double *tmpArr = new double[10];
-			double *epoch_error=new double[epoch_count];
-			double *max_epoch_error=new double[epoch_count];
+  double *tmpArr = new double[10];
+	double *epoch_error=new double[epoch_count];
+	double *max_epoch_error=new double[epoch_count];
 
-	    for (int j = 0; j < epoch_count; j++){
-        for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
+  for (int j = 0; j < epoch_count; j++){
+    for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
 
-          serialDBL->train( pictures.getInput(i),  pictures.getOutput(i));
+      serialDBL->train( pictures.getInput(i),  pictures.getOutput(i));
 
-					double error = serialDBL->obtainError( pictures.getOutput(i));
+			double error = serialDBL->obtainError( pictures.getOutput(i));
 
-					epoch_error[j]+=error;
+			epoch_error[j]+=error;
 
-					if(max_epoch_error[j]<error){
-						max_epoch_error[j]=error;
-					}
-				}
-				printf("+\n");
-				printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
+			if(max_epoch_error[j]<error){
+				max_epoch_error[j]=error;
 			}
+		}
+		printf("+\n");
+		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
+	}
 
-			const char * c=file_avg_max_error.c_str();
-			FILE *file = fopen(c, "w");
+	const char * c=file_avg_max_error.c_str();
+	FILE *file = fopen(c, "w");
 
-			for(int i=0;i<epoch_count;i++){
-					fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
-			}
+	for(int i=0;i<epoch_count;i++){
+			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
+	}
 
-			fclose(file);
+	fclose(file);
 
-			delete[] tmpArr;
-			delete[] epoch_error;
-			delete[] max_epoch_error;
+	delete[] tmpArr;
+	delete[] epoch_error;
+	delete[] max_epoch_error;
 }
 
 void PictureClassification::Test(string Mnist_file,string MnistLabel_file, string file_load_network){
@@ -367,18 +376,29 @@ void PictureClassification::Test(string Mnist_file,string MnistLabel_file, strin
 void PictureClassification::test_network(PictureData pictures,AnnSerialDBL* serialDBL){
 	double *tmpArr = new double[10];
 
-	for (int i = 0; i < 10; i++) {
+	int correct_outputs=0;
+	int test_samples=pictures.getNumberOfSamples();
+	for (int i = 0; i < test_samples; i++) {
 		serialDBL->feedForward(pictures.getInput(i), tmpArr);
 
 		for(int k  = 0; k < 10; k++)
 			printf("%f, %f\n", pictures.getOutput(i)[k], tmpArr[k]);
 
+		if(pictures.getOutput(i)[PictureClassification::getMaxValue(tmpArr)]==1){
+			correct_outputs++;
+		}
+		printf("%s\n", "");
+		//printf("Result: %d\n", PictureClassification::getMaxValue(tmpArr));
+
+		if(i<10)
 		for(int row = 0; row < 28; row++){
 			for(int col = 0; col < 28; col++)
 				printf("%s", pictures.getInput(i)[row*28+col] > 0.3 ? "X" : " ");
 			printf("\n");
 		}
 	}
+
+	printf("Tests done: %d\nCorrect outputs: %d\n", test_samples,correct_outputs);
 
 	delete[] tmpArr;
 }
@@ -400,12 +420,24 @@ void PictureData::pushTarget(double a, vector<double*> &targets)
 //Paveiksliuku nuskaitymui
 int PictureData::reverseInt(int i)
 {
-    unsigned char ch1, ch2, ch3, ch4;
-    ch1 = i&255;
-    ch2 = (i >> 8)&255;
-    ch3 = (i >> 16)&255;
-    ch4 = (i >> 24)&255;
-    return ((int)ch1<<24) + ((int)ch2<<16) + ((int)ch3<<8) + ch4;
+  unsigned char ch1, ch2, ch3, ch4;
+  ch1 = i&255;
+  ch2 = (i >> 8)&255;
+  ch3 = (i >> 16)&255;
+  ch4 = (i >> 24)&255;
+  return ((int)ch1<<24) + ((int)ch2<<16) + ((int)ch3<<8) + ch4;
+}
+
+int PictureClassification::getMaxValue(double * a) {
+ int ind = 0;
+ double max = 0;
+ for (int i = 0; i < 10; i++) {
+     if (a[i] > max) {
+         max = a[i];
+         ind = i;
+     }
+ }
+ return ind;
 }
 
 int main (int c, char *v[]) {

@@ -74,6 +74,7 @@ public:
 private:
 	static void train_network(PictureData pictures,AnnSerialDBL* serialDBL, int epoch_count,string file_avg_max_error);
 	static void test_network(PictureData pictures,AnnSerialDBL* serialDBL);
+	static int getMaxValue(double * a);
 };
 
 #endif /* ANN_DEMO_HEADER */
