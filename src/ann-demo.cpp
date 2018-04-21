@@ -270,7 +270,7 @@ void pic_sample() {
   string test_labels = "./../files/t10k-labels.idx1-ubyte";
   string test_images = "./../files/t10k-images.idx3-ubyte";
 
-	int epoch_count=1;
+	int epoch_count=10;
 	string network_file="network_data.bin";
 	string avg_max_file="avg_max_error.txt";
 
@@ -381,20 +381,22 @@ void PictureClassification::test_network(PictureData pictures,AnnSerialDBL* seri
 	for (int i = 0; i < test_samples; i++) {
 		serialDBL->feedForward(pictures.getInput(i), tmpArr);
 
-		for(int k  = 0; k < 10; k++)
-			printf("%f, %f\n", pictures.getOutput(i)[k], tmpArr[k]);
+		for(int k  = 0; k < 10; k++){
+			//printf("%f, %f\n", pictures.getOutput(i)[k], tmpArr[k]);
+		}
 
 		if(pictures.getOutput(i)[PictureClassification::getMaxValue(tmpArr)]==1){
 			correct_outputs++;
 		}
-		printf("%s\n", "");
+	//	printf("%s\n", "");
 		//printf("Result: %d\n", PictureClassification::getMaxValue(tmpArr));
 
 		if(i<10)
 		for(int row = 0; row < 28; row++){
-			for(int col = 0; col < 28; col++)
-				printf("%s", pictures.getInput(i)[row*28+col] > 0.3 ? "X" : " ");
-			printf("\n");
+			for(int col = 0; col < 28; col++){
+			//	printf("%s", pictures.getInput(i)[row*28+col] > 0.3 ? "X" : " ");
+			//printf("\n");
+			}
 		}
 	}
 
