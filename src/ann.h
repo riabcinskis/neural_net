@@ -47,11 +47,14 @@ class Topology {
 
 		int getInputNeuronCount();
 		int getOutputNeuronCount();
+
+    void printTopology(FILE *file);
+    void readTopology(FILE *file);
 };
 template <typename T>
 class AnnBase {
 public:
-	virtual void prepare(Topology *top, T alpha, T eta) = 0;
+	virtual void prepare(T alpha, T eta,Topology *top) = 0;
 	virtual void init(T w_arr_1[]) = 0;
 	virtual void train(T *a, T *b) = 0;
 	virtual void feedForward(T *a, T *b) = 0;
@@ -88,7 +91,7 @@ private:
 
 
 public:
-	void prepare(Topology *top, double alpha, double eta);
+	void prepare(double alpha, double eta,Topology *top);
 	void init(double w_arr_1[]);
 	void train(double *a, double *b);
 	void feedForward(double *a, double *b);
@@ -105,6 +108,7 @@ public:
 	double* getWeights();
   double* getDWeights();
 	double* getA();
+  Topology* getTopology();
 
   void printf_Network(string filename);
 
@@ -174,7 +178,7 @@ private:
 
 
 public:
-	void prepare(Topology *top, float alpha, float eta);
+	void prepare(float alpha, float eta,Topology *top);
 	void init(float w_arr_1[]);
 	void train(float *a, float *b);
 	void feedForward(float *a, float *b);

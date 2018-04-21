@@ -78,7 +78,7 @@ void xor_sample(){
 
 	double alpha = 0.95;
   double eta = 0.9;
-	SerialDBL -> prepare(topology, alpha, eta);
+	SerialDBL -> prepare( alpha, eta,topology);
 
 	SerialDBL->init(NULL);
 
@@ -112,13 +112,6 @@ void xor_sample(){
 			SerialDBL->feedForward(input, output);
 			double error = SerialDBL->obtainError(target);
 			printf("error = %e\n", error);
-
-			//Sample_Double temp={input,output};
-			//xo.addSample(temp);
-			// printf("inout:  %.2f  %.2f\n",xo.getInput(dataCount+i*2+j)[0],xo.getInput(dataCount+i*2+j)[1] );
-			// printf("output: %.2f  %.2f\n",xo.getOutput(dataCount+i*2+j)[0],xo.getOutput(dataCount+i*2+j)[1] );
-			// printf("Result: %d\n", xo.getResult(dataCount+i*2+j));
-			// printf("---------------------------------\n");
 		}
 	}
 
@@ -139,7 +132,7 @@ void xor_sample_Float(){
 
 	float alpha = 0.7;
   float eta = 0.25;
-	serialFlt -> prepare(topology, alpha, eta);
+	serialFlt -> prepare( alpha, eta,topology);
 
 	serialFlt->init(NULL);
 
@@ -270,7 +263,7 @@ void pic_sample() {
   string test_labels = "./../files/t10k-labels.idx1-ubyte";
   string test_images = "./../files/t10k-images.idx3-ubyte";
 
-	int epoch_count=10;
+	int epoch_count=1;
 	string network_file="network_data.bin";
 	string avg_max_file="avg_max_error.txt";
 
@@ -297,7 +290,7 @@ void PictureClassification::Train(string Mnist_file,string MnistLabel_file, int 
 
 	double alpha = 0.8;
   double eta = 0.005;
-	serialDBL -> prepare(topology, alpha, eta);
+	serialDBL -> prepare( alpha, eta,topology);
 
 	serialDBL->init(NULL);
 
@@ -350,16 +343,11 @@ void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* ser
 }
 
 void PictureClassification::Test(string Mnist_file,string MnistLabel_file, string file_load_network){
-	Topology *topology = new Topology();
-	topology->addLayer(784);
-	topology->addLayer(300);
-	topology->addLayer(10);
-
   AnnSerialDBL* test_serialDBL=new AnnSerialDBL(file_load_network);
 
 	double alpha = 0.8;
 	double eta = 0.005;
-	test_serialDBL-> prepare(topology, alpha, eta);
+	test_serialDBL-> prepare( alpha, eta,NULL);
 
   test_serialDBL->init(NULL);
 
@@ -453,7 +441,7 @@ int main (int c, char *v[]) {
 	// printf("\n\n\nFloat rezultatai: \n");
 	// xor_sample_Float();
   //
-  // run_cuda_sample();
+   //run_cuda_sample();
 
 	pic_sample();
 

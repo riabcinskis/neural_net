@@ -31,7 +31,7 @@ bool test_forward_Double(){
 
   double alpha = 0.7;
   double eta = 0.25;
-  serialDBL->prepare(topology, alpha, eta);
+  serialDBL->prepare(alpha, eta,topology);
 
   double *warr = new double[9];
   int idx = 0;
@@ -85,7 +85,7 @@ bool test_backward_Double(){
   AnnSerialDBL  *serialDBL = new AnnSerialDBL();
   double alpha = 0.7;
   double eta = 0.25;
-  serialDBL->prepare(topology, alpha, eta);
+  serialDBL->prepare(alpha, eta,topology);
 
   double *warr = new double[9];
   int idx = 0;
@@ -176,7 +176,7 @@ bool test_forwardFLT(){
 
   double alpha = 0.7;
   double eta = 0.25;
-  serialFLT->prepare(topology, alpha, eta);
+  serialFLT->prepare(alpha, eta,topology);
 
   float *warr = new float[9];
   int idx = 0;
@@ -228,7 +228,7 @@ bool test_backwardFLT(){
   AnnSerialFLT  *serialFLT = new AnnSerialFLT();
   float alpha = 0.7;
   float eta = 0.25;
-  serialFLT->prepare(topology, alpha, eta);
+  serialFLT->prepare( alpha, eta,topology);
 
   float *warr = new float[9];
   int idx = 0;
@@ -315,7 +315,7 @@ bool test_File_Double(){
 
   double alpha = 0.7;
   double eta = 0.25;
-  serialDBL->prepare(topology, alpha, eta);
+  serialDBL->prepare( alpha, eta,topology);
 
   double *warr = new double[9];
   int idx = 0;
@@ -353,13 +353,18 @@ bool test_File_Double(){
   //*********************************************************************************
   AnnSerialDBL *serialDBL_2=new AnnSerialDBL("w_and_dw_tests.bin");
 
-  serialDBL_2->prepare(topology, alpha, eta);
+  serialDBL_2->prepare( alpha, eta,NULL);
 
   serialDBL_2->init(NULL);
 
+  Topology* tp=serialDBL_2->getTopology();
+  if(tp->getLayerSize(0)!=2) return false;
+  if(tp->getLayerSize(1)!=2) return false;
+  if(tp->getLayerSize(2)!=1) return false;
+
+
   double *warr2 = serialDBL_2->getWeights();
   for(int i=0;i<9;i++){
-    //  printf("w[%d] = %.20f\n", i, warr2[i]);
       if(warr[i]!=warr2[i])
        return false;
   }
@@ -381,6 +386,25 @@ bool test_File_Double(){
   delete serialDBL;
   delete serialDBL_2;
   delete topology;
+  delete tp;
+}
+
+bool test_Topology_From_File(){
+  AnnSerialDBL *serialDBL_2=new AnnSerialDBL("w_and_dw_tests.bin");
+
+  double alpha = 0.7;
+  double eta = 0.25;
+
+  serialDBL_2->prepare( alpha, eta,NULL);
+
+  Topology* tp=serialDBL_2->getTopology();
+  if(tp->getLayerSize(0)!=2) return false;
+  if(tp->getLayerSize(1)!=2) return false;
+  if(tp->getLayerSize(2)!=1) return false;
+
+  delete serialDBL_2;
+  delete tp;
+  return true;
 }
 
 bool run_tests(){
@@ -403,6 +427,9 @@ bool run_tests(){
 
   passed = test_backwardFLT(); failCount += passed ? 0 : 1;
   printf("%s - test_backward_Float\n", passed ? "PASSED" : "FAILED");
+
+  passed = test_Topology_From_File(); failCount += passed ? 0 : 1;
+  printf("%s - test_Topology_From_File\n", passed ? "PASSED" : "FAILED");
 
   passed = test_File_Double(); failCount += passed ? 0 : 1;
   printf("%s - test_Files_Double\n", passed ? "PASSED" : "FAILED");

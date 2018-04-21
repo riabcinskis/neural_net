@@ -96,6 +96,27 @@ int Topology::getOutputNeuronCount(){
 	return (*ml)[ml->size()-1];
 }
 
+void Topology::printTopology(FILE *file){
+  int a=getLayerCount();
+  fwrite (&a , sizeof(int), 1, file);
+  for(int i=0;i<a;i++){
+    int b=ml->at(i);
+    fwrite (&b , sizeof(int), 1, file);
+  }
+}
+
+void Topology::readTopology(FILE *file){
+  int size=0;
+  (void)fread (&size , sizeof(int), 1, file);
+  int* abc=new int[size];
+  ml=new vector<int>();
+  (void)fread (abc , sizeof(int), size, file);
+  for(int i=0;i<size;i++){
+    ml->push_back(abc[i]);
+  }
+}
+
+
 /* sudeti funkcijas i private */
 
 double AnnSerialDBL::f(double x) {
@@ -165,17 +186,26 @@ void Data_Double::setSizes(int input_size, int output_size)
 
 
 //****************
-void AnnSerialDBL::prepare(Topology *top, double alpha, double eta)
+void AnnSerialDBL::prepare(double alpha, double eta,Topology *top=NULL)
 {
-	cTopology = top;
+
+  if(!filename.empty()){
+    FILE * p1File;
+    const char * c = filename.c_str();
+    p1File = fopen(c, "rb");
+    cTopology=new Topology();
+    cTopology->readTopology(p1File);
+    fclose (p1File);
+  }
+	else cTopology = top;
 	mAlpha = alpha;
 	mEta = eta;
 
-	inputCount = top->getLayerSize(0);
-	outputCount = top->getLayerSize(top->getLayerCount() - 1);
+	inputCount = cTopology->getLayerSize(0);
+	outputCount = cTopology->getLayerSize(cTopology->getLayerCount() - 1);
 
-	l = new int[top->getLayerCount()];
-	s = new int[top->getLayerCount()];
+	l = new int[cTopology->getLayerCount()];
+	s = new int[cTopology->getLayerCount()];
 
 	neuronCount = cTopology->obtainNeuronCount();
 	int weightCount = cTopology->obtainWeightCount();
@@ -183,13 +213,13 @@ void AnnSerialDBL::prepare(Topology *top, double alpha, double eta)
 	a_arr = new double[neuronCount];
 	z_arr = new double[neuronCount];
 
-	W = new int[top->getLayerCount()];
-	sw = new int[top->getLayerCount()];
+	W = new int[cTopology->getLayerCount()];
+	sw = new int[cTopology->getLayerCount()];
 
 	w_arr = new double[weightCount];
 	dw_arr = new double[weightCount];
 
-	t_arr = new double[top->getLayerSize(top->getLayerCount() - 1)];
+	t_arr = new double[cTopology->getLayerSize(cTopology->getLayerCount() - 1)];
 
 	gjl = new double[neuronCount];
 }
@@ -379,6 +409,10 @@ double* AnnSerialDBL::getA(){
 	return a_arr;
 }
 
+Topology* AnnSerialDBL::getTopology(){
+  return cTopology;
+}
+
 double AnnSerialDBL::delta_w(double grad, double dw) {
 	return -mEta*grad + mAlpha*dw;
 }
@@ -388,6 +422,7 @@ void AnnSerialDBL::printf_Network(string output_filename){
   FILE * pFile;
   const char * c = output_filename.c_str();
   pFile = fopen(c, "wb");
+  cTopology->printTopology(pFile);
   fwrite (w_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
   fwrite (dw_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
   fclose (pFile);
@@ -397,6 +432,13 @@ void AnnSerialDBL::readf_Network(){
   FILE * pFile;
   const char * c = filename.c_str();
   pFile = fopen (c, "rb");
+
+ int size=0;
+ (void)fread (&size , sizeof(int), 1, pFile);
+ int* abc=new int[size];
+ (void)fread (abc , sizeof(int), size, pFile);
+
+  //cTopology->readTopology(pFile);
   (void)fread (w_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
   (void)fread (dw_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
   fclose (pFile);
@@ -479,7 +521,7 @@ void Data_Float::setSizes(int input_size, int output_size)
 
 
 //****************
-void AnnSerialFLT::prepare(Topology *top, float alpha, float eta)
+void AnnSerialFLT::prepare( float alpha, float eta,Topology *top)
 {
 	cTopology = top;
 	mAlpha = alpha;
