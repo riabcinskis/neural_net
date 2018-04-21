@@ -68,6 +68,112 @@ int XOR_Float::getResult(int index){
 		 return index1;
 }
 
+void xor_sample(){
+  Topology *topology = new Topology();
+	topology->addLayer(2);
+	topology->addLayer(5);
+	topology->addLayer(2);
+
+	AnnSerialDBL* SerialDBL=new AnnSerialDBL();
+
+	double alpha = 0.95;
+  double eta = 0.9;
+	SerialDBL -> prepare(topology, alpha, eta);
+
+	SerialDBL->init(NULL);
+
+	SerialDBL->print_out();
+
+	XOR xo;
+	int dataCount=500;
+	xo.generate(dataCount);
+
+	SerialDBL->train(xo.getInput(0), xo.getOutput(0));
+
+
+	for (int i = 1; i < xo.getNumberOfSamples(); i++) {
+		SerialDBL->train(xo.getInput(i), xo.getOutput(i));
+	}
+
+	//Checking results(all combinations 0 and 1)
+	double *target = new double[2];
+	double *output = new double[2];
+
+
+	SerialDBL->print_out();
+
+	for (double i = 0; i < 2; i++) {
+		for (double j = 0; j < 2; j++) {
+			double input[] = { i ,j };
+			target[0] = i==j;
+			target[1] = i!=j;
+
+
+			SerialDBL->feedForward(input, output);
+			double error = SerialDBL->obtainError(target);
+			printf("error = %e\n", error);
+
+			//Sample_Double temp={input,output};
+			//xo.addSample(temp);
+			// printf("inout:  %.2f  %.2f\n",xo.getInput(dataCount+i*2+j)[0],xo.getInput(dataCount+i*2+j)[1] );
+			// printf("output: %.2f  %.2f\n",xo.getOutput(dataCount+i*2+j)[0],xo.getOutput(dataCount+i*2+j)[1] );
+			// printf("Result: %d\n", xo.getResult(dataCount+i*2+j));
+			// printf("---------------------------------\n");
+		}
+	}
+
+	SerialDBL->destroy();
+	delete SerialDBL;
+}
+
+void xor_sample_Float(){
+  Topology *topology = new Topology();
+	topology->addLayer(2);
+	topology->addLayer(5);
+	topology->addLayer(4);
+	topology->addLayer(2);
+
+
+
+	AnnSerialFLT* serialFlt=new AnnSerialFLT();
+
+	float alpha = 0.7;
+  float eta = 0.25;
+	serialFlt -> prepare(topology, alpha, eta);
+
+	serialFlt->init(NULL);
+
+	XOR_Float xo;
+	int dataCount=5000;
+	xo.generate(dataCount);
+	serialFlt->train(xo.getInput(0), xo.getOutput(0));
+
+
+	for (int i = 1; i < xo.getNumberOfSamples(); i++) {
+		serialFlt->train(xo.getInput(i), xo.getOutput(i));
+	}
+
+	//Checking results(all combinations 0 and 1)
+	for (float i = 0; i < 2; i++) {
+		for (float j = 0; j < 2; j++) {
+			float input[] = { i ,j };
+			float output[] = { 0,0 };
+
+			serialFlt->feedForward(input, output);
+			Sample_Float temp={input,output};
+			xo.addSample(temp);
+			printf("inout:  %.2f  %.2f\n",xo.getInput(dataCount+i*2+j)[0],xo.getInput(dataCount+i*2+j)[1] );
+			printf("output: %.2f  %.2f\n",xo.getOutput(dataCount+i*2+j)[0],xo.getOutput(dataCount+i*2+j)[1] );
+			printf("Result: %d\n", xo.getResult(dataCount+i*2+j));
+			printf("---------------------------------\n");
+		}
+	}
+
+	serialFlt->destroy();
+	delete serialFlt;
+}
+
+
 //************************************************************************
 //                           Paveiksliukai
 //************************************************************************
@@ -141,165 +247,6 @@ void PictureData::readMnistLabel(string filename, vector<double> &vec)
 		}
 }
 
-
-//int PictureData::printMaxValue(int index, AnnSerialDBL &SerialDBL) {
-//  int ind = 0;
-//  double max = 0;
-//  for (int i = 0; i < SerialDBL.l[SerialDBL.L - 1]; i++) {
-//      if (SerialDBL.a_arr[SerialDBL.s[SerialDBL.L - 1]] >= max) {
-//          max = SerialDBL.a_arr[SerialDBL.s[SerialDBL.L - 1]];
-//          ind = i;
-//      }
-//  }
-//  return ind;
-//}
-
-void xor_sample(){
-  Topology *topology = new Topology();
-	topology->addLayer(2);
-	topology->addLayer(5);
-	topology->addLayer(2);
-
-	AnnSerialDBL* SerialDBL=new AnnSerialDBL();
-
-	double alpha = 0.95;
-  double eta = 0.9;
-	SerialDBL -> prepare(topology, alpha, eta);
-
-	SerialDBL->init(NULL);
-
-	SerialDBL->print_out();
-
-	XOR xo;
-	int dataCount=500;
-	xo.generate(dataCount);
-
-	SerialDBL->train(xo.getInput(0), xo.getOutput(0));
-
-
-	for (int i = 1; i < xo.getNumberOfSamples(); i++) {
-		SerialDBL->train(xo.getInput(i), xo.getOutput(i));
-	}
-
-	//Checking results(all combinations 0 and 1)
-	double *target = new double[2];
-	double *output = new double[2];
-
-
-	SerialDBL->print_out();
-
-	for (double i = 0; i < 2; i++) {
-		for (double j = 0; j < 2; j++) {
-			double input[] = { i ,j };
-			target[0] = i==j;
-			target[1] = i!=j;
-
-
-			SerialDBL->feedForward(input, output);
-			double error = SerialDBL->obtainError(target);
-			printf("error = %e\n", error);
-
-			//Sample_Double temp={input,output};
-			//xo.addSample(temp);
-			// printf("inout:  %.2f  %.2f\n",xo.getInput(dataCount+i*2+j)[0],xo.getInput(dataCount+i*2+j)[1] );
-			// printf("output: %.2f  %.2f\n",xo.getOutput(dataCount+i*2+j)[0],xo.getOutput(dataCount+i*2+j)[1] );
-			// printf("Result: %d\n", xo.getResult(dataCount+i*2+j));
-			// printf("---------------------------------\n");
-		}
-	}
-
-	SerialDBL->destroy();
-	delete SerialDBL;
-}
-
-
-void xor_sample_Float(){
-  Topology *topology = new Topology();
-	topology->addLayer(2);
-	topology->addLayer(5);
-	topology->addLayer(4);
-	topology->addLayer(2);
-
-
-
-	AnnSerialFLT* serialFlt=new AnnSerialFLT();
-
-	float alpha = 0.7;
-  float eta = 0.25;
-	serialFlt -> prepare(topology, alpha, eta);
-
-	serialFlt->init(NULL);
-
-	XOR_Float xo;
-	int dataCount=5000;
-	xo.generate(dataCount);
-	serialFlt->train(xo.getInput(0), xo.getOutput(0));
-
-
-	for (int i = 1; i < xo.getNumberOfSamples(); i++) {
-		serialFlt->train(xo.getInput(i), xo.getOutput(i));
-	}
-
-	//Checking results(all combinations 0 and 1)
-	for (float i = 0; i < 2; i++) {
-		for (float j = 0; j < 2; j++) {
-			float input[] = { i ,j };
-			float output[] = { 0,0 };
-
-			serialFlt->feedForward(input, output);
-			Sample_Float temp={input,output};
-			xo.addSample(temp);
-			printf("inout:  %.2f  %.2f\n",xo.getInput(dataCount+i*2+j)[0],xo.getInput(dataCount+i*2+j)[1] );
-			printf("output: %.2f  %.2f\n",xo.getOutput(dataCount+i*2+j)[0],xo.getOutput(dataCount+i*2+j)[1] );
-			printf("Result: %d\n", xo.getResult(dataCount+i*2+j));
-			printf("---------------------------------\n");
-		}
-	}
-
-	serialFlt->destroy();
-	delete serialFlt;
-}
-
-void pic_sample() {
-	string train_labels = "./../files/train-labels.idx1-ubyte";
-  string train_images = "./../files/train-images.idx3-ubyte";
-  string test_labels = "./../files/t10k-labels.idx1-ubyte";
-  string test_images = "./../files/t10k-images.idx3-ubyte";
-
-	Topology *topology = new Topology();
-	topology->addLayer(784);
-	topology->addLayer(300);
-	topology->addLayer(10);
-
-	AnnSerialDBL* serialDBL=new AnnSerialDBL();
-
-	double alpha = 0.8;
-  double eta = 0.005;
-	serialDBL -> prepare(topology, alpha, eta);
-
-	serialDBL->init(NULL);
-
-	PictureData pictures;
-
-	pictures.ReadData(train_images,train_labels);
-
-	pictures.Train(serialDBL);
-
-	serialDBL->printf_Network("pic_apmokyta_200epoch.bin");
-
-	delete serialDBL;
-
-	AnnSerialDBL* test_serialDBL=new AnnSerialDBL("pic_apmokyta_200epoch.bin");
-
-	alpha = 0.8;
-	eta = 0.005;
-	test_serialDBL-> prepare(topology, alpha, eta);
-
-	test_serialDBL->init(NULL);
-
-	pictures.Test(serialDBL);
-}
-
 void PictureData::ReadData(string Mnist_file, string MnistLabel_file){
 	vector<double*> arr;
 	vector<double> vec;
@@ -317,20 +264,58 @@ void PictureData::ReadData(string Mnist_file, string MnistLabel_file){
 	vec.clear();
 }
 
-void PictureData::Train(AnnSerialDBL* serialDBL){
-		  double *tmpArr = new double[10];
+void pic_sample() {
+	string train_labels = "./../files/train-labels.idx1-ubyte";
+  string train_images = "./../files/train-images.idx3-ubyte";
+  string test_labels = "./../files/t10k-labels.idx1-ubyte";
+  string test_images = "./../files/t10k-images.idx3-ubyte";
 
-			int epoch_count=10;
+	int epoch_count=5;
+	string network_file="network_data.bin";
+	string avg_max_file="avg_max_error.txt";
+
+	PictureClassification::Train(train_images,train_labels,epoch_count,avg_max_file,network_file);
+	PictureClassification::Test(test_images,test_labels, network_file);
+}
+
+void PictureClassification::Train(string Mnist_file,string MnistLabel_file, int epoch_count,string file_avg_max_error,string file_save_network){
+	Topology *topology = new Topology();
+	topology->addLayer(784);
+	topology->addLayer(300);
+	topology->addLayer(10);
+
+	AnnSerialDBL* serialDBL=new AnnSerialDBL();
+
+	double alpha = 0.8;
+  double eta = 0.005;
+	serialDBL -> prepare(topology, alpha, eta);
+
+	serialDBL->init(NULL);
+
+	PictureData pictures;
+
+	pictures.ReadData(Mnist_file,MnistLabel_file);
+
+
+	PictureClassification::train_network(pictures,serialDBL,epoch_count,file_avg_max_error);
+
+	serialDBL->printf_Network(file_save_network);
+
+	delete serialDBL;
+}
+
+void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* serialDBL, int epoch_count,string file_avg_max_error){
+		  double *tmpArr = new double[10];
 			double *epoch_error=new double[epoch_count];
 			double *max_epoch_error=new double[epoch_count];
 
 	    for (int j = 0; j < epoch_count; j++){
-        for (int i = 0; i < getNumberOfSamples(); i++) {
+        for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
 
-          serialDBL->train(getInput(i), getOutput(i));
+          serialDBL->train( pictures.getInput(i),  pictures.getOutput(i));
 
-					double error = serialDBL->obtainError(getOutput(i));
-					//printf("%.10f\n", error);
+					double error = serialDBL->obtainError( pictures.getOutput(i));
+
 					epoch_error[j]+=error;
 
 					if(max_epoch_error[j]<error){
@@ -338,30 +323,59 @@ void PictureData::Train(AnnSerialDBL* serialDBL){
 					}
 				}
 				printf("+\n");
-				printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/getNumberOfSamples(),max_epoch_error[j]);
+				printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 			}
 
-			FILE *file = fopen("errors.txt", "w");
+			const char * c=file_avg_max_error.c_str();
+			FILE *file = fopen(c, "w");
 
 			for(int i=0;i<epoch_count;i++){
-					fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/epoch_count,max_epoch_error[i]);
+					fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
 			}
 
 			fclose(file);
+
+			delete[] tmpArr;
+			delete[] epoch_error;
+			delete[] max_epoch_error;
 }
 
-void PictureData::Test(AnnSerialDBL* serialDBL){
+void PictureClassification::Test(string Mnist_file,string MnistLabel_file, string file_load_network){
+	Topology *topology = new Topology();
+	topology->addLayer(784);
+	topology->addLayer(300);
+	topology->addLayer(10);
+
+  AnnSerialDBL* test_serialDBL=new AnnSerialDBL(file_load_network);
+
+	double alpha = 0.8;
+	double eta = 0.005;
+	test_serialDBL-> prepare(topology, alpha, eta);
+
+  test_serialDBL->init(NULL);
+
+	PictureData pictures;
+
+	pictures.ReadData(Mnist_file,MnistLabel_file);
+
+
+  PictureClassification::test_network(pictures,test_serialDBL);
+
+	delete test_serialDBL;
+}
+
+void PictureClassification::test_network(PictureData pictures,AnnSerialDBL* serialDBL){
 	double *tmpArr = new double[10];
 
 	for (int i = 0; i < 10; i++) {
-		serialDBL->feedForward(getInput(i), tmpArr);
+		serialDBL->feedForward(pictures.getInput(i), tmpArr);
 
 		for(int k  = 0; k < 10; k++)
-			printf("%f, %f\n", getOutput(i)[k], tmpArr[k]);
+			printf("%f, %f\n", pictures.getOutput(i)[k], tmpArr[k]);
 
 		for(int row = 0; row < 28; row++){
 			for(int col = 0; col < 28; col++)
-				printf("%s", getInput(i)[row*28+col] > 0.3 ? "X" : " ");
+				printf("%s", pictures.getInput(i)[row*28+col] > 0.3 ? "X" : " ");
 			printf("\n");
 		}
 	}
