@@ -186,7 +186,7 @@ void Data_Double::setSizes(int input_size, int output_size)
 
 
 //****************
-void AnnSerialDBL::prepare(double alpha, double eta,Topology *top=NULL)
+void AnnSerialDBL::prepare(Topology *top=NULL)
 {
 
   if(!filename.empty()){
@@ -198,8 +198,7 @@ void AnnSerialDBL::prepare(double alpha, double eta,Topology *top=NULL)
     fclose (p1File);
   }
 	else cTopology = top;
-	mAlpha = alpha;
-	mEta = eta;
+
 
 	inputCount = cTopology->getLayerSize(0);
 	outputCount = cTopology->getLayerSize(cTopology->getLayerCount() - 1);
@@ -285,7 +284,7 @@ void AnnSerialDBL::init(double w_arr_1[] = NULL)
 
 }
 
-void AnnSerialDBL::train(double *a, double *b)
+void AnnSerialDBL::train(double *a, double *b, double alpha, double eta)
 {
 
 
@@ -309,7 +308,7 @@ void AnnSerialDBL::train(double *a, double *b)
 	for (int i = 0; i <L - 1; i++) {//per sluoksnius
 		for (int j = 0; j < l[i]; j++) {//per neuronus
 			for (int k = 0; k < l[i + 1] - 1; k++) {//per kito sluoksnio neuronus
-				dw_arr[sw[i] + k + j*(l[i + 1] - 1)] = delta_w(w_gradient(i, j, k), dw_arr[sw[i] + k + j*(l[i + 1] - 1)]);
+				dw_arr[sw[i] + k + j*(l[i + 1] - 1)] = delta_w(w_gradient(i, j, k), dw_arr[sw[i] + k + j*(l[i + 1] - 1)], alpha, eta);
 				w_arr[sw[i] + k + j*(l[i + 1] - 1)] += dw_arr[sw[i] + k + j*(l[i + 1] - 1)];
 			}
 		}
@@ -351,7 +350,7 @@ void AnnSerialDBL::print_out(){
 	printf("g = %e\n", gjl[s[L-1]+0]);
 
 	for(int i = 0; i < l[L-2]; i++){
-	//	if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
+		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
 	}
 }
 
@@ -413,8 +412,8 @@ Topology* AnnSerialDBL::getTopology(){
   return cTopology;
 }
 
-double AnnSerialDBL::delta_w(double grad, double dw) {
-	return -mEta*grad + mAlpha*dw;
+double AnnSerialDBL::delta_w(double grad, double dw, double alpha, double eta) {
+	return -eta*grad + alpha*dw;
 }
 
 
@@ -521,11 +520,10 @@ void Data_Float::setSizes(int input_size, int output_size)
 
 
 //****************
-void AnnSerialFLT::prepare( float alpha, float eta,Topology *top)
+void AnnSerialFLT::prepare( Topology *top)
 {
 	cTopology = top;
-	mAlpha = alpha;
-	mEta = eta;
+
 
 	inputCount = top->getLayerSize(0);
 	outputCount = top->getLayerSize(top->getLayerCount() - 1);
@@ -552,6 +550,8 @@ void AnnSerialFLT::prepare( float alpha, float eta,Topology *top)
 
 void AnnSerialFLT::init(float w_arr_1[] = NULL)
 {
+  Random *rnd = new Random();
+
   L = cTopology->getLayerCount();
 
 	//Neuronu kiekiai sluoksnyje
@@ -583,7 +583,7 @@ void AnnSerialFLT::init(float w_arr_1[] = NULL)
 		}
 		if (w_arr_1 == NULL) {
 			for (int j = 0; j < W[i]; j++) {
-				w_arr[sw[i] + j] = (float)rand() / double(RAND_MAX);
+				w_arr[sw[i] + j] = (rnd->next()*2-1); // (double)rand() / double(RAND_MAX);
 				dw_arr[sw[i] + j] = 0;
 			}
 		}
@@ -597,7 +597,7 @@ void AnnSerialFLT::init(float w_arr_1[] = NULL)
 	}
 }
 
-void AnnSerialFLT::train(float *a, float *b)
+void AnnSerialFLT::train(float *a, float *b, float alpha, float eta)
 {
 
 
@@ -613,7 +613,6 @@ void AnnSerialFLT::train(float *a, float *b)
 	calc_feedForward();
 
 
-
 	for (int i = 0; i < outputCount; i++) {
 		t_arr[i] = b[i];
 	}
@@ -623,7 +622,7 @@ void AnnSerialFLT::train(float *a, float *b)
 	for (int i = 0; i <L - 1; i++) {//per sluoksnius
 		for (int j = 0; j < l[i]; j++) {//per neuronus
 			for (int k = 0; k < l[i + 1] - 1; k++) {//per kito sluoksnio neuronus
-				dw_arr[sw[i] + k + j*(l[i + 1] - 1)] = delta_w(w_gradient(i, j, k), dw_arr[sw[i] + k + j*(l[i + 1] - 1)]);
+				dw_arr[sw[i] + k + j*(l[i + 1] - 1)] = delta_w(w_gradient(i, j, k), dw_arr[sw[i] + k + j*(l[i + 1] - 1)], alpha, eta);
 				w_arr[sw[i] + k + j*(l[i + 1] - 1)] += dw_arr[sw[i] + k + j*(l[i + 1] - 1)];
 			}
 		}
@@ -640,7 +639,9 @@ void AnnSerialFLT::feedForward(float *a, float *b)
 		z_arr[j] = 0;
 	}
 
+
 	calc_feedForward();
+
 
 	for (int i = 0; i<outputCount; i++)
 		b[i] = a_arr[s[L - 1] + i];
@@ -656,7 +657,12 @@ float AnnSerialFLT::obtainError(float *b){
 }
 
 void AnnSerialFLT::print_out(){
+  printf("z = %e\n", z_arr[s[L-1]+0]);
+	printf("g = %e\n", gjl[s[L-1]+0]);
 
+	for(int i = 0; i < l[L-2]; i++){
+		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
+	}
 }
 
 void AnnSerialFLT::calc_feedForward()
@@ -706,6 +712,26 @@ float* AnnSerialFLT::getWeights(){
 	return w_arr;
 }
 
-float AnnSerialFLT::delta_w(float grad, float dw) {
-	return -mEta*grad + mAlpha*dw;
+void AnnSerialFLT::printf_Network(string filename){
+  FILE * pFile;
+  const char * c = filename.c_str();
+  pFile = fopen(c, "wb");
+  cTopology->printTopology(pFile);
+
+  int weightCount = cTopology->obtainWeightCount();
+
+  double *w_arr_dbl = new double[weightCount];
+  double *dw_arr_dbl = new double[weightCount];
+  for(int i = 0; i < weightCount; i++){
+    w_arr_dbl[i] = (double)w_arr[i];
+    dw_arr_dbl[i] = (double)dw_arr[i];
+  }
+
+  fwrite (w_arr_dbl , sizeof(double), weightCount, pFile);
+  fwrite (dw_arr_dbl , sizeof(double), weightCount, pFile);
+  fclose (pFile);
+}
+
+float AnnSerialFLT::delta_w(float grad, float dw, float alpha, float eta) {
+	return -eta*grad + alpha*dw;
 }

@@ -54,9 +54,9 @@ class Topology {
 template <typename T>
 class AnnBase {
 public:
-	virtual void prepare(T alpha, T eta,Topology *top) = 0;
+	virtual void prepare(Topology *top) = 0;
 	virtual void init(T w_arr_1[]) = 0;
-	virtual void train(T *a, T *b) = 0;
+	virtual void train(T *a, T *b, T alpha, T eta) = 0;
 	virtual void feedForward(T *a, T *b) = 0;
 	virtual void destroy() = 0;
 	virtual T obtainError(T *b) = 0;
@@ -71,8 +71,7 @@ class AnnSerialDBL : public AnnBase<double> {
 private:
   string filename;
 	Topology* cTopology;
-	double mAlpha;
-	double mEta;
+
 
 	int neuronCount;
 	int inputCount;
@@ -91,9 +90,9 @@ private:
 
 
 public:
-	void prepare(double alpha, double eta,Topology *top);
+	void prepare(Topology *top);
 	void init(double w_arr_1[]);
-	void train(double *a, double *b);
+	void train(double *a, double *b, double alpha, double eta);
 	void feedForward(double *a, double *b);
 	void destroy();
 
@@ -117,7 +116,7 @@ int getMaxOutput();
 
 private:
 	void calc_feedForward();
-	double delta_w(double grad, double dw);
+	double delta_w(double grad, double dw, double alpha, double eta);
 	double f(double x);
 	double f_deriv(double x);
 	double gL(double a, double z, double t);
@@ -158,8 +157,6 @@ protected:
 class AnnSerialFLT : public AnnBase<float> {
 private:
 	Topology* cTopology;
-	float mAlpha;
-	float mEta;
 
 	int neuronCount;
 	int inputCount;
@@ -178,9 +175,9 @@ private:
 
 
 public:
-	void prepare(float alpha, float eta,Topology *top);
+	void prepare(Topology *top);
 	void init(float w_arr_1[]);
-	void train(float *a, float *b);
+	void train(float *a, float *b, float alpha, float eta);
 	void feedForward(float *a, float *b);
 	void destroy();
 
@@ -192,10 +189,12 @@ public:
 
 	float* getWeights();
 
+  void printf_Network(string filename);
+
 
 private:
 	void calc_feedForward();
-	float delta_w(float grad, float dw);
+	float delta_w(float grad, float dw, float alpha, float eta);
 	float f(float x);
 	float f_deriv(float x);
 	float gL(float a, float z, float t);

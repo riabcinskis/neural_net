@@ -29,9 +29,8 @@ bool test_forward_Double(){
 
   AnnSerialDBL  *serialDBL = new AnnSerialDBL();
 
-  double alpha = 0.7;
-  double eta = 0.25;
-  serialDBL->prepare(alpha, eta,topology);
+
+  serialDBL->prepare(topology);
 
   double *warr = new double[9];
   int idx = 0;
@@ -85,7 +84,7 @@ bool test_backward_Double(){
   AnnSerialDBL  *serialDBL = new AnnSerialDBL();
   double alpha = 0.7;
   double eta = 0.25;
-  serialDBL->prepare(alpha, eta,topology);
+  serialDBL->prepare(topology);
 
   double *warr = new double[9];
   int idx = 0;
@@ -112,7 +111,7 @@ bool test_backward_Double(){
   output[0] = 0.5;
 
 
-	serialDBL->train(input, output);
+	serialDBL->train(input, output, alpha, eta);
 
   //printf("output = %.20f\n", output[0]);
 
@@ -174,9 +173,7 @@ bool test_forwardFLT(){
 
   AnnSerialFLT  *serialFLT = new AnnSerialFLT();
 
-  double alpha = 0.7;
-  double eta = 0.25;
-  serialFLT->prepare(alpha, eta,topology);
+  serialFLT->prepare(topology);
 
   float *warr = new float[9];
   int idx = 0;
@@ -228,7 +225,7 @@ bool test_backwardFLT(){
   AnnSerialFLT  *serialFLT = new AnnSerialFLT();
   float alpha = 0.7;
   float eta = 0.25;
-  serialFLT->prepare( alpha, eta,topology);
+  serialFLT->prepare( topology);
 
   float *warr = new float[9];
   int idx = 0;
@@ -255,7 +252,7 @@ bool test_backwardFLT(){
   output[0] = 0.5;
 
 
-	serialFLT->train(input, output);
+	serialFLT->train(input, output, alpha, eta);
 
   //printf("output = %.20f\n", output[0]);
 
@@ -313,9 +310,8 @@ bool test_File_Double(){
 
   AnnSerialDBL  *serialDBL = new AnnSerialDBL();
 
-  double alpha = 0.7;
-  double eta = 0.25;
-  serialDBL->prepare( alpha, eta,topology);
+
+  serialDBL->prepare(topology);
 
   double *warr = new double[9];
   int idx = 0;
@@ -353,7 +349,7 @@ bool test_File_Double(){
   //*********************************************************************************
   AnnSerialDBL *serialDBL_2=new AnnSerialDBL("w_and_dw_tests.bin");
 
-  serialDBL_2->prepare( alpha, eta,NULL);
+  serialDBL_2->prepare( NULL);
 
   serialDBL_2->init(NULL);
 
@@ -392,10 +388,9 @@ bool test_File_Double(){
 bool test_Topology_From_File(){
   AnnSerialDBL *serialDBL_2=new AnnSerialDBL("w_and_dw_tests.bin");
 
-  double alpha = 0.7;
-  double eta = 0.25;
 
-  serialDBL_2->prepare( alpha, eta,NULL);
+
+  serialDBL_2->prepare(NULL);
 
   Topology* tp=serialDBL_2->getTopology();
   if(tp->getLayerSize(0)!=2) return false;
