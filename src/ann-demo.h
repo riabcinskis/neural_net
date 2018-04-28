@@ -32,7 +32,6 @@ class XOR_Float : public Data_Float{
 		XOR_Float(){
 			inputs = 2;
 			outputs = 2;
-			samples = 0;
 		}
 		void printInputs(int index);
 
@@ -42,7 +41,6 @@ class XOR_Float : public Data_Float{
 //************************************************************************
 //                           Paveiksliukai
 //************************************************************************
-
 class PictureData : public Data_Double{
 	public:
     PictureData(){}

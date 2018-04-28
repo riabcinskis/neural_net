@@ -215,7 +215,7 @@ class Data_Float{
 
   	float * getOutput(int index);
 
-  	int getNumberOfSamples() { return samples; }
+  	int getNumberOfSamples() { return data.size(); }
 
   	void addSample(Sample_Float sample);
 
@@ -225,7 +225,6 @@ class Data_Float{
   	std::vector<Sample_Float> data;
   	int inputs;
   	int outputs;
-  	int samples = 0;
 };
 
 /* Class definitions here. */

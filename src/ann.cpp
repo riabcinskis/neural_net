@@ -462,8 +462,7 @@ float AnnSerialFLT::w_gradient(int layer_id, int w_i, int w_j) {
 
 
 
-void AnnSerialFLT::calc_gjl()
-{
+void AnnSerialFLT::calc_gjl(){
 	for (int i = L - 1; i >= 0; i--) {
 		for (int j = 0; j < l[i]-1; j++) {
 			if (L - 1 == i) {
@@ -482,24 +481,19 @@ void AnnSerialFLT::calc_gjl()
 }
 
 //*********
-float * Data_Float::getInput(int index)
-{
+float * Data_Float::getInput(int index){
 	return data[index].input;
 }
 
-float * Data_Float::getOutput(int index)
-{
+float * Data_Float::getOutput(int index){
 	return data[index].output;
 }
 
-void Data_Float::addSample(Sample_Float sample)
-{
+void Data_Float::addSample(Sample_Float sample){
 	data.push_back(sample);
-	samples++;
 }
 
-void Data_Float::setSizes(int input_size, int output_size)
-{
+void Data_Float::setSizes(int input_size, int output_size){
 	inputs = input_size;
 	outputs = output_size;
 }
@@ -508,8 +502,7 @@ void Data_Float::setSizes(int input_size, int output_size)
 
 
 //****************
-void AnnSerialFLT::prepare( Topology *top)
-{
+void AnnSerialFLT::prepare( Topology *top){
 	cTopology = top;
 
 
@@ -536,8 +529,7 @@ void AnnSerialFLT::prepare( Topology *top)
 	gjl = new float[neuronCount];
 }
 
-void AnnSerialFLT::init(float w_arr_1[] = NULL)
-{
+void AnnSerialFLT::init(float w_arr_1[] = NULL){
   Random *rnd = new Random();
 
   L = cTopology->getLayerCount();
@@ -585,11 +577,7 @@ void AnnSerialFLT::init(float w_arr_1[] = NULL)
 	}
 }
 
-void AnnSerialFLT::train(float *a, float *b, float alpha, float eta)
-{
-
-
-
+void AnnSerialFLT::train(float *a, float *b, float alpha, float eta){
 	for (int i = 0; i < inputCount; i++) {
 		a_arr[i] = a[i];
 	}
@@ -617,8 +605,7 @@ void AnnSerialFLT::train(float *a, float *b, float alpha, float eta)
 	}
 }
 
-void AnnSerialFLT::feedForward(float *a, float *b)
-{
+void AnnSerialFLT::feedForward(float *a, float *b){
 	for (int i = 0; i < inputCount; i++) {
 		a_arr[i] = a[i];
 	}
@@ -653,8 +640,7 @@ void AnnSerialFLT::print_out(){
 	}
 }
 
-void AnnSerialFLT::calc_feedForward()
-{
+void AnnSerialFLT::calc_feedForward(){
 	for (int i = 0; i < L - 1; i++) {//per sluoksnius einu+
 		for (int j = 0; j < l[i]; j++) { //kiek neuronu sluoksnyje+
 			for (int k = 0; k < l[i + 1] - 1; k++) {//per sekancio sluoksnio z+
@@ -667,8 +653,7 @@ void AnnSerialFLT::calc_feedForward()
 	}
 }
 
-void AnnSerialFLT::destroy()
-{
+void AnnSerialFLT::destroy(){
 	delete[] l;
 	l = NULL;
 	delete[] s;

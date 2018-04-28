@@ -544,9 +544,6 @@ void PictureClassification::Train(TrainConfig *config){
 
 		delete serialFLT;
 	}
-
-
-
 }
 
 void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* serialDBL, TrainConfig *config){
