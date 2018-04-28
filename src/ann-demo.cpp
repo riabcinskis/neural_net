@@ -70,15 +70,12 @@ void xor_sample(){
 	topology->addLayer(5);
 	topology->addLayer(2);
 
-	AnnSerialDBL* SerialDBL=new AnnSerialDBL();
+	AnnSerialDBL* SerialDBL=new AnnSerialDBL(topology);
 
 	double alpha = 0.95;
   double eta = 0.9;
-	SerialDBL -> prepare(topology);
 
-	SerialDBL->init(NULL);
-
-	SerialDBL->print_out();
+	//SerialDBL->print_out();
 
 	XOR xo;
 	int dataCount=500;
@@ -96,7 +93,7 @@ void xor_sample(){
 	double *output = new double[2];
 
 
-	SerialDBL->print_out();
+	//SerialDBL->print_out();
 
 	for (double i = 0; i < 2; i++) {
 		for (double j = 0; j < 2; j++) {
@@ -124,19 +121,15 @@ void xor_sample_Float(){
 
 
 
-	AnnSerialFLT* serialFlt=new AnnSerialFLT();
+	AnnSerialFLT* serialFlt=new AnnSerialFLT(topology);
 
 	float alpha = 0.7;
   float eta = 0.25;
-	serialFlt -> prepare(topology);
-
-	serialFlt->init(NULL);
 
 	XOR_Float xo;
 	int dataCount=5000;
 	xo.generate(dataCount);
 	serialFlt->train(xo.getInput(0), xo.getOutput(0), alpha, eta);
-
 
 	for (int i = 1; i < xo.getNumberOfSamples(); i++) {
 		serialFlt->train(xo.getInput(i), xo.getOutput(i), alpha, eta);
@@ -167,10 +160,352 @@ void xor_sample_Float(){
 //                           Paveiksliukai
 //************************************************************************
 
+//***************************************
+void pic_sample() {
+	string test_labels = "./../files/t10k-labels.idx1-ubyte";
+  string test_images = "./../files/t10k-images.idx3-ubyte";
+
+	Topology* topology = new Topology();
+	topology->addLayer(784);
+	topology->addLayer(300);
+	topology->addLayer(10);
+
+	TrainConfig *config = new TrainConfig();
+	config->setImpl(IMPL_DOUBLE);
+	config->setPicDataFileName("./../files/train-images.idx3-ubyte");
+	config->setLabelDataFileName("./../files/train-labels.idx1-ubyte");
+	config->setErrorsFileName("avg_max_error.txt");
+	config->setNetworkFileName("network_data.bin");
+	config->setEpochCount(1);
+	config->setTopology(topology);
+	config->setEta(0.005);
+	config->setAlpha(0.8);
+
+
+	double startTime = clock();
+
+  PictureClassification::Train(config);
+
+  double endTime = clock();
+  double runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
+
+	printf("=== DOUBLE \n");
+	printf("Apmokymas uztruko: %.5f sec\n", runtime);
+
+
+	PictureClassification::Test(test_images,test_labels, "network_data.bin");
+
+	////
+	config->setImpl(IMPL_FLOAT);
+	config->setErrorsFileName("avg_max_error_flt.txt");
+	config->setNetworkFileName("network_data_flt.bin");
+	config->setEpochCount(1);
+	config->setTopology(topology);
+	config->setEta(0.005);
+	config->setAlpha(0.8);
+
+
+	startTime = clock();
+
+  PictureClassification::Train(config);
+
+  endTime = clock();
+  runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
+
+	printf("=== FLOAT \n");
+	printf("Apmokymas uztruko: %.5f sec\n", runtime);
+
+
+	PictureClassification::Test(test_images,test_labels, "network_data_flt.bin");
+
+}
+
+//****************************************
+//
+// TrainConfig
+//
+void TrainConfig::setImpl(int impl){
+	mImpl = impl;
+}
+
+void TrainConfig::setPicDataFileName(string picDataFileName){
+	mPicDataFileName = picDataFileName;
+}
+
+void TrainConfig::setLabelDataFileName(string labelDataFileName){
+	mLabelDataFileName = labelDataFileName;
+}
+
+void TrainConfig::setEpochCount(int epochCount){
+	mEpochCount = epochCount;
+}
+
+void TrainConfig::setErrorsFileName(string errorsFileName){
+	mErrorsFileName = errorsFileName;
+}
+
+void TrainConfig::setNetworkFileName(string networkFileName){
+	mNetworkFileName = networkFileName;
+}
+
+void TrainConfig::setTopology(Topology *topology){
+	mTopology = topology;
+}
+
+void TrainConfig::setEta(double eta){
+	mEta = eta;
+}
+
+void TrainConfig::setAlpha(double alpha){
+	mAlpha = alpha;
+}
+
+int TrainConfig::getImpl(){
+	return mImpl;
+}
+
+string TrainConfig::getPicDataFileName(){
+	return mPicDataFileName;
+}
+
+string TrainConfig::getLabelDataFileName(){
+	return mLabelDataFileName;
+}
+
+int TrainConfig::getEpochCount(){
+	return mEpochCount;
+}
+
+string TrainConfig::getErrorsFileName(){
+	return mErrorsFileName;
+}
+
+string TrainConfig::getNetworkFileName(){
+	return mNetworkFileName;
+}
+
+Topology* TrainConfig::getTopology(){
+	return mTopology;
+}
+
+double TrainConfig::getEta(){
+	return mEta;
+}
+
+double TrainConfig::getAlpha(){
+	return mAlpha;
+}
+
+
+//*********************************************
+//
+//PictureClassification
+//
+void PictureClassification::Train(TrainConfig *config){
+	Topology *topology = config->getTopology();
+
+	if(config->getImpl() == IMPL_DOUBLE){
+		AnnSerialDBL* serialDBL=new AnnSerialDBL(topology);
+
+		double alpha = config->getAlpha();
+	  double eta = config->getEta();
+
+		PictureData pictures;
+
+		pictures.ReadData(config->getPicDataFileName(), config->getLabelDataFileName());
+
+		PictureClassification::train_network(pictures, serialDBL, config);
+
+		serialDBL->printf_Network(config->getNetworkFileName());
+
+		delete serialDBL;
+	}
+
+	if(config->getImpl() == IMPL_FLOAT){
+		AnnSerialFLT* serialFLT=new AnnSerialFLT(topology);
+
+		float alpha = (float)config->getAlpha();
+	  float eta = (float)config->getEta();
+
+		PictureDataFlt pictures;
+
+		pictures.ReadData(config->getPicDataFileName(), config->getLabelDataFileName());
+
+		PictureClassification::train_network(pictures, serialFLT, config);
+
+		serialFLT->printf_Network(config->getNetworkFileName());
+
+		delete serialFLT;
+	}
+}
+
+void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* serialDBL, TrainConfig *config){
+	double alpha = config->getAlpha();
+	double eta = config->getEta();
+	int epoch_count = config->getEpochCount();
+
+  double *tmpArr = new double[10];
+	double *epoch_error=new double[epoch_count];
+	double *max_epoch_error=new double[epoch_count];
+
+  for (int j = 0; j < epoch_count; j++){
+    for (int i = 0; i < pictures.getNumberOfSamples()/1; i++) {
+
+      serialDBL->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
+
+			double error = serialDBL->obtainError( pictures.getOutput(i));
+
+			epoch_error[j]+=error;
+
+			if(max_epoch_error[j]<error){
+				max_epoch_error[j]=error;
+			}
+		}
+		printf("+\n");
+		printf("Total error: %.10f\n", epoch_error[j]);
+		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
+	}
+
+
+	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
+	if(file == NULL){
+		printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+	}
+
+	for(int i=0;i<epoch_count;i++){
+			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
+	}
+
+	fclose(file);
+
+	delete[] tmpArr;
+	delete[] epoch_error;
+	delete[] max_epoch_error;
+}
+
+void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT, TrainConfig *config){
+
+	float alpha = (float) config->getAlpha();
+	float eta = (float) config->getEta();
+	int epoch_count = config->getEpochCount();
+
+	float *tmpArr = new float[10];
+
+	float *epoch_error=new float[epoch_count];
+	float *max_epoch_error=new float[epoch_count];
+
+
+  for (int j = 0; j < epoch_count; j++){
+    for (int i = 0; i < pictures.getNumberOfSamples()/1; i++) {
+
+      serialFLT->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
+
+			float error = serialFLT->obtainError( pictures.getOutput(i));
+
+			epoch_error[j]+=error;
+
+			if(max_epoch_error[j]<error){
+				max_epoch_error[j]=error;
+			}
+		}
+		printf("+\n");
+		printf("Total error: %.10f\n", epoch_error[j]);
+		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
+	}
+
+	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
+	if(file == NULL){
+		printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+	}
+
+	for(int i=0;i<epoch_count;i++){
+			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
+	}
+
+	fclose(file);
+
+	delete[] tmpArr;
+	delete[] epoch_error;
+	delete[] max_epoch_error;
+}
+
+void PictureClassification::Test(string Mnist_file,string MnistLabel_file, string file_load_network){
+  AnnSerialDBL* test_serialDBL=new AnnSerialDBL(file_load_network);
+
+	PictureData pictures;
+
+	pictures.ReadData(Mnist_file,MnistLabel_file);
+
+  PictureClassification::test_network(pictures,test_serialDBL);
+
+	delete test_serialDBL;
+}
+
+void PictureClassification::test_network(PictureData pictures,AnnSerialDBL* serialDBL){
+	double *tmpArr = new double[10];
+
+	int correct_outputs=0;
+	int test_samples=pictures.getNumberOfSamples();
+	for (int i = 0; i < test_samples; i++) {
+		serialDBL->feedForward(pictures.getInput(i), tmpArr);
+
+
+		if(pictures.getOutput(i)[PictureClassification::getMaxValue(tmpArr)]==1)
+			correct_outputs++;
+	}
+
+	printf("Tests done: %d\nCorrect outputs: %d\n", test_samples,correct_outputs);
+
+	delete[] tmpArr;
+}
+
+void PictureClassification::test_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT){
+	float *tmpArr = new float[10];
+
+	int correct_outputs = 0;
+	int test_samples=pictures.getNumberOfSamples();
+	for (int i = 0; i < test_samples; i++) {
+		serialFLT->feedForward(pictures.getInput(i), tmpArr);
+
+
+		if(pictures.getOutput(i)[PictureClassification::getMaxValue(tmpArr)]==1)
+			correct_outputs++;
+
+	}
+
+	printf("Tests done: %d\nCorrect outputs: %d\n", test_samples, correct_outputs);
+
+	delete[] tmpArr;
+}
+
+int PictureClassification::getMaxValue(double * a) {
+ int ind = 0;
+ double max = 0;
+ for (int i = 0; i < 10; i++) {
+     if (a[i] > max) {
+         max = a[i];
+         ind = i;
+     }
+ }
+ return ind;
+}
+
+int PictureClassification::getMaxValue(float * a) {
+ int ind = 0;
+ float max = 0;
+ for (int i = 0; i < 10; i++) {
+     if (a[i] > max) {
+         max = a[i];
+         ind = i;
+     }
+ }
+ return ind;
+}
+
+//*****************************************************
 //
 // PictureData
 //
-
 void PictureData::ReadData(string Mnist_file, string MnistLabel_file){
 	vector<double*> arr;
 	vector<int> vec;
@@ -264,7 +599,7 @@ int PictureData::reverseInt(int i){
   return ((int)ch1<<24) + ((int)ch2<<16) + ((int)ch3<<8) + ch4;
 }
 
-
+//********************************************
 //
 // PictureDataFlt
 //
@@ -360,369 +695,13 @@ int PictureDataFlt::reverseInt(int i){
   return ((int)ch1<<24) + ((int)ch2<<16) + ((int)ch3<<8) + ch4;
 }
 
-
-void pic_sample() {
-	string test_labels = "./../files/t10k-labels.idx1-ubyte";
-  string test_images = "./../files/t10k-images.idx3-ubyte";
-
-
-
-	Topology* topology = new Topology();
-	topology->addLayer(784);
-	topology->addLayer(300);
-	topology->addLayer(10);
-
-
-	TrainConfig *config = new TrainConfig();
-	config->setImpl(IMPL_DOUBLE);
-	config->setPicDataFileName("./../files/train-images.idx3-ubyte");
-	config->setLabelDataFileName("./../files/train-labels.idx1-ubyte");
-	config->setErrorsFileName("avg_max_error.txt");
-	config->setNetworkFileName("network_data.bin");
-	config->setEpochCount(1);
-	config->setTopology(topology);
-	config->setEta(0.005);
-	config->setAlpha(0.8);
-
-	double startTime = clock();
-
-
-  PictureClassification::Train(config);
-
-  double endTime = clock();
-  double runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
-
-	printf("=== DOUBLE \n");
-	printf("Apmokymas uztruko: %.5f sec\n", runtime);
-
-	PictureClassification::Test(test_images,test_labels, "network_data.bin");
-
-	////
-	config->setImpl(IMPL_FLOAT);
-	config->setErrorsFileName("avg_max_error_flt.txt");
-	config->setNetworkFileName("network_data_flt.bin");
-	config->setEpochCount(1);
-	config->setTopology(topology);
-	config->setEta(0.005);
-	config->setAlpha(0.8);
-
-	startTime = clock();
-
-
-  PictureClassification::Train(config);
-
-  endTime = clock();
-  runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
-
-	printf("=== FLOAT \n");
-	printf("Apmokymas uztruko: %.5f sec\n", runtime);
-
-	PictureClassification::Test(test_images,test_labels, "network_data_flt.bin");
-
-
-}
-
-//
-// TrainConfig
-//
-
-void TrainConfig::setImpl(int impl){
-	mImpl = impl;
-}
-
-void TrainConfig::setPicDataFileName(string picDataFileName){
-	mPicDataFileName = picDataFileName;
-}
-
-void TrainConfig::setLabelDataFileName(string labelDataFileName){
-	mLabelDataFileName = labelDataFileName;
-}
-
-void TrainConfig::setEpochCount(int epochCount){
-	mEpochCount = epochCount;
-}
-
-void TrainConfig::setErrorsFileName(string errorsFileName){
-	mErrorsFileName = errorsFileName;
-}
-
-void TrainConfig::setNetworkFileName(string networkFileName){
-	mNetworkFileName = networkFileName;
-}
-
-void TrainConfig::setTopology(Topology *topology){
-	mTopology = topology;
-}
-
-void TrainConfig::setEta(double eta){
-	mEta = eta;
-}
-
-void TrainConfig::setAlpha(double alpha){
-	mAlpha = alpha;
-}
-
-int TrainConfig::getImpl(){
-	return mImpl;
-}
-
-string TrainConfig::getPicDataFileName(){
-	return mPicDataFileName;
-}
-
-string TrainConfig::getLabelDataFileName(){
-	return mLabelDataFileName;
-}
-
-int TrainConfig::getEpochCount(){
-	return mEpochCount;
-}
-
-string TrainConfig::getErrorsFileName(){
-	return mErrorsFileName;
-}
-
-string TrainConfig::getNetworkFileName(){
-	return mNetworkFileName;
-}
-
-Topology* TrainConfig::getTopology(){
-	return mTopology;
-}
-
-double TrainConfig::getEta(){
-	return mEta;
-}
-
-double TrainConfig::getAlpha(){
-	return mAlpha;
-}
-
-void PictureClassification::Train(TrainConfig *config){
-	Topology *topology = config->getTopology();
-
-	if(config->getImpl() == IMPL_DOUBLE){
-		AnnSerialDBL* serialDBL=new AnnSerialDBL();
-		double alpha = config->getAlpha();
-	  double eta = config->getEta();
-
-		serialDBL -> prepare(topology);
-
-		serialDBL->init(NULL);
-
-		PictureData pictures;
-
-		pictures.ReadData(config->getPicDataFileName(), config->getLabelDataFileName());
-
-
-		PictureClassification::train_network(pictures, serialDBL, config);
-		serialDBL->printf_Network(config->getNetworkFileName());
-		//serialDBL->print_out();
-
-
-		delete serialDBL;
-	}
-
-	if(config->getImpl() == IMPL_FLOAT){
-		AnnSerialFLT* serialFLT=new AnnSerialFLT();
-		float alpha = (float)config->getAlpha();
-	  float eta = (float)config->getEta();
-
-		serialFLT -> prepare(topology);
-
-		serialFLT->init(NULL);
-
-		PictureDataFlt pictures;
-
-		pictures.ReadData(config->getPicDataFileName(), config->getLabelDataFileName());
-
-
-		PictureClassification::train_network(pictures, serialFLT, config);
-
-		serialFLT->printf_Network(config->getNetworkFileName());
-		//serialFLT->print_out();
-
-		delete serialFLT;
-	}
-}
-
-void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* serialDBL, TrainConfig *config){
-	double alpha = config->getAlpha();
-	double eta = config->getEta();
-	int epoch_count = config->getEpochCount();
-
-  double *tmpArr = new double[10];
-	double *epoch_error=new double[epoch_count];
-	double *max_epoch_error=new double[epoch_count];
-
-  for (int j = 0; j < epoch_count; j++){
-    for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
-
-      serialDBL->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
-
-			double error = serialDBL->obtainError( pictures.getOutput(i));
-
-			epoch_error[j]+=error;
-
-			if(max_epoch_error[j]<error){
-				max_epoch_error[j]=error;
-			}
-		}
-		printf("+\n");
-		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
-	}
-
-
-	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
-	if(file == NULL){
-		printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
-	}
-
-	for(int i=0;i<epoch_count;i++){
-			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
-	}
-
-	fclose(file);
-
-	delete[] tmpArr;
-	delete[] epoch_error;
-	delete[] max_epoch_error;
-}
-
-void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT, TrainConfig *config){
-
-	float alpha = (float) config->getAlpha();
-	float eta = (float) config->getEta();
-	int epoch_count = config->getEpochCount();
-
-	float *tmpArr = new float[10];
-
-	float *epoch_error=new float[epoch_count];
-	float *max_epoch_error=new float[epoch_count];
-
-
-  for (int j = 0; j < epoch_count; j++){
-    for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
-
-      serialFLT->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
-
-			float error = serialFLT->obtainError( pictures.getOutput(i));
-
-			epoch_error[j]+=error;
-
-			if(max_epoch_error[j]<error){
-				max_epoch_error[j]=error;
-			}
-		}
-		printf("+\n");
-		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
-	}
-
-	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
-	if(file == NULL){
-		printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
-	}
-
-	for(int i=0;i<epoch_count;i++){
-			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
-	}
-
-	fclose(file);
-
-	delete[] tmpArr;
-	delete[] epoch_error;
-	delete[] max_epoch_error;
-}
-
-void PictureClassification::Test(string Mnist_file,string MnistLabel_file, string file_load_network){
-  AnnSerialDBL* test_serialDBL=new AnnSerialDBL(file_load_network);
-
-
-	test_serialDBL-> prepare(NULL);
-
-  test_serialDBL->init(NULL);
-
-	PictureData pictures;
-
-	pictures.ReadData(Mnist_file,MnistLabel_file);
-
-
-  PictureClassification::test_network(pictures,test_serialDBL);
-
-	delete test_serialDBL;
-}
-
-void PictureClassification::test_network(PictureData pictures,AnnSerialDBL* serialDBL){
-	double *tmpArr = new double[10];
-
-	int correct_outputs=0;
-	int test_samples=pictures.getNumberOfSamples();
-	for (int i = 0; i < test_samples; i++) {
-		serialDBL->feedForward(pictures.getInput(i), tmpArr);
-
-
-		if(pictures.getOutput(i)[PictureClassification::getMaxValue(tmpArr)]==1)
-			correct_outputs++;
-
-	}
-
-	printf("Tests done: %d\nCorrect outputs: %d\n", test_samples,correct_outputs);
-
-	delete[] tmpArr;
-}
-
-void PictureClassification::test_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT){
-	float *tmpArr = new float[10];
-
-	int correct_outputs = 0;
-	int test_samples=pictures.getNumberOfSamples();
-	for (int i = 0; i < test_samples; i++) {
-		serialFLT->feedForward(pictures.getInput(i), tmpArr);
-
-
-		if(pictures.getOutput(i)[PictureClassification::getMaxValue(tmpArr)]==1)
-			correct_outputs++;
-
-	}
-
-	printf("Tests done: %d\nCorrect outputs: %d\n", test_samples, correct_outputs);
-
-	delete[] tmpArr;
-}
-
-
-
-int PictureClassification::getMaxValue(double * a) {
- int ind = 0;
- double max = 0;
- for (int i = 0; i < 10; i++) {
-     if (a[i] > max) {
-         max = a[i];
-         ind = i;
-     }
- }
- return ind;
-}
-
-int PictureClassification::getMaxValue(float * a) {
- int ind = 0;
- float max = 0;
- for (int i = 0; i < 10; i++) {
-     if (a[i] > max) {
-         max = a[i];
-         ind = i;
-     }
- }
- return ind;
-}
-
 int main (int c, char *v[]) {
 
   printf("ANN - demo\n\n");
 
  if(run_tests() == false) return 0;
 
-//  xor_sample();
+ // xor_sample();
 
 	// printf("\n\n\nFloat rezultatai: \n");
 	// xor_sample_Float();

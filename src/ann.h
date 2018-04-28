@@ -52,84 +52,14 @@ class Topology {
     void readTopology(FILE *file);
 };
 
-template <typename T>
-class AnnBase {
-  public:
-  	virtual void prepare(Topology *top) = 0;
-  	virtual void init(T w_arr_1[]) = 0;
-  	virtual void train(T *a, T *b, T alpha, T eta) = 0;
-  	virtual void feedForward(T *a, T *b) = 0;
-  	virtual void destroy() = 0;
-  	virtual T obtainError(T *b) = 0;
-
-  	virtual void print_out() = 0;
-
-  private:
-  	virtual void calc_feedForward() = 0;
-};
-
-class AnnSerialDBL : public AnnBase<double> {
-  private:
-    string filename;
-  	Topology* cTopology;
-
-
-  	int neuronCount;
-  	int inputCount;
-  	int outputCount;
-  	int L;
-  	int * l;
-  	int * s;
-  	double * a_arr;
-  	double * z_arr;
-  	int * W;
-  	int * sw;
-  	double * w_arr;
-  	double * dw_arr;
-  	double * t_arr;
-  	double * gjl;
-
-
-  public:
-  	void prepare(Topology *top);
-  	void init(double w_arr_1[]);
-  	void train(double *a, double *b, double alpha, double eta);
-  	void feedForward(double *a, double *b);
-  	void destroy();
-
-  	double obtainError(double *b);
-  	void print_out();
-
-
-  	AnnSerialDBL(string filename="") {
-      this->filename=filename;
-    };
-
-  	double* getWeights();
-    double* getDWeights();
-  	double* getA();
-    Topology* getTopology();
-
-    void printf_Network(string filename);
-
-    //tempppp
-    int getMaxOutput();
-
-  private:
-  	void calc_feedForward();
-  	double delta_w(double grad, double dw, double alpha, double eta);
-  	double f(double x);
-  	double f_deriv(double x);
-  	double gL(double a, double z, double t);
-  	double w_gradient(int layer_id, int w_i, int w_j);
-  	void calc_gjl();
-
-    void readf_Network();
-};
-
 struct Sample_Double{
 	double * input;
 	double * output;
+};
+
+struct Sample_Float{
+	float * input;
+	float * output;
 };
 
 class Data_Double{
@@ -149,61 +79,8 @@ class Data_Double{
 
   protected:
   	std::vector<Sample_Double> data;
-  	int inputs;
-  	int outputs;
-};
-
-class AnnSerialFLT : public AnnBase<float> {
-  private:
-  	Topology* cTopology;
-
-  	int neuronCount;
-  	int inputCount;
-  	int outputCount;
-  	int L;
-  	int * l;
-  	int * s;
-  	float * a_arr;
-  	float * z_arr;
-  	int * W;
-  	int * sw;
-  	float * w_arr;
-  	float * dw_arr;
-  	float * t_arr;
-  	float * gjl;
-
-
-  public:
-  	void prepare(Topology *top);
-  	void init(float w_arr_1[]);
-  	void train(float *a, float *b, float alpha, float eta);
-  	void feedForward(float *a, float *b);
-  	void destroy();
-
-  	float obtainError(float *b);
-  	void print_out();
-
-
-  	AnnSerialFLT() {};
-
-  	float* getWeights();
-
-    void printf_Network(string filename);
-
-
-  private:
-  	void calc_feedForward();
-  	float delta_w(float grad, float dw, float alpha, float eta);
-  	float f(float x);
-  	float f_deriv(float x);
-  	float gL(float a, float z, float t);
-  	float w_gradient(int layer_id, int w_i, int w_j);
-  	void calc_gjl();
-};
-
-struct Sample_Float{
-	float * input;
-	float * output;
+    int inputs;
+    int outputs;
 };
 
 class Data_Float{
@@ -225,6 +102,138 @@ class Data_Float{
   	std::vector<Sample_Float> data;
   	int inputs;
   	int outputs;
+};
+
+template <typename T>
+class AnnBase {
+  public:
+  	virtual void train(T *a, T *b, T alpha, T eta) = 0;
+  	virtual void feedForward(T *a, T *b) = 0;
+  	virtual void destroy() = 0;
+  	virtual T obtainError(T *b) = 0;
+
+  	virtual void print_out() = 0;
+
+  private:
+    virtual void prepare(Topology *top) = 0;
+    virtual	void init(FILE *pFile)=0;
+  	virtual void calc_feedForward() = 0;
+};
+
+class AnnSerialDBL : public AnnBase<double> {
+  private:
+  	Topology* cTopology;
+
+  	int L;
+  	int * l;
+  	int * s;
+  	double * a_arr;
+  	double * z_arr;
+  	int * W;
+  	int * sw;
+  	double * w_arr;
+  	double * dw_arr;
+  	double * t_arr;
+  	double * gjl;
+  public:
+  	void train(double *a, double *b, double alpha, double eta);
+  	void feedForward(double *a, double *b);
+  	void destroy();
+
+  	double obtainError(double *b);
+  	void print_out();
+
+    void setWeights(double *t_w_arr){
+      w_arr=t_w_arr;
+    };
+
+  	AnnSerialDBL(string filename) {
+        FILE * p1File;
+        p1File = fopen(filename.c_str(), "rb");
+        Topology *top=new Topology();
+        top->readTopology(p1File);
+        prepare(top);
+        init(p1File);
+        fclose (p1File);
+    };
+
+    AnnSerialDBL(Topology *top) {
+      prepare(top);
+      init(NULL);
+    };
+
+  	double* getWeights();
+    double* getDWeights();
+  	double* getA();
+    Topology* getTopology();
+
+    void printf_Network(string filename);
+
+
+  private:
+    void prepare(Topology *top);
+    void init(FILE *pFile);
+
+  	void calc_feedForward();
+  	double delta_w(double grad, double dw, double alpha, double eta);
+  	double f(double x);
+  	double f_deriv(double x);
+  	double gL(double a, double z, double t);
+  	double w_gradient(int layer_id, int w_i, int w_j);
+  	void calc_gjl();
+
+    void readf_Network(FILE *pFile);
+};
+
+class AnnSerialFLT : public AnnBase<float> {
+  private:
+  	Topology* cTopology;
+
+  	int L;
+  	int * l;
+  	int * s;
+  	float * a_arr;
+  	float * z_arr;
+  	int * W;
+  	int * sw;
+  	float * w_arr;
+  	float * dw_arr;
+  	float * t_arr;
+  	float * gjl;
+
+  public:
+  	void train(float *a, float *b, float alpha, float eta);
+  	void feedForward(float *a, float *b);
+  	void destroy();
+
+  	float obtainError(float *b);
+  	void print_out();
+
+    void setWeights(float *t_w_arr){
+      w_arr=t_w_arr;
+    };
+
+    AnnSerialFLT(Topology *top) {
+      prepare(top);
+      init(NULL);
+    };
+
+  	float* getWeights();
+
+    void printf_Network(string filename);
+
+
+  private:
+    void prepare(Topology *top);
+    void init(FILE *pFile);
+
+  	void calc_feedForward();
+  	float delta_w(float grad, float dw, float alpha, float eta);
+  	float f(float x);
+  	float f_deriv(float x);
+  	float gL(float a, float z, float t);
+  	float w_gradient(int layer_id, int w_i, int w_j);
+  	void calc_gjl();
 };
 
 /* Class definitions here. */

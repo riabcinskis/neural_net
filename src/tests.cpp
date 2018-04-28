@@ -12,25 +12,16 @@ bool test_topology(){
   if(topology->obtainNeuronCount() != 8) return false;
   if(topology->obtainWeightCount() != 9) return false;
 
-
   return true;
 }
 
 bool test_forward_Double(){
-
-  // int arr[] = {2,2,1};
-	// setTopology(topolygy, arr, sizeof(arr)/sizeof(arr[0]));
-  // return true;
-
   Topology *topology = new Topology();
   topology->addLayer(2);
   topology->addLayer(2);
   topology->addLayer(1);
 
-  AnnSerialDBL  *serialDBL = new AnnSerialDBL();
-
-
-  serialDBL->prepare(topology);
+  AnnSerialDBL  *serialDBL = new AnnSerialDBL(topology);
 
   double *warr = new double[9];
   int idx = 0;
@@ -46,8 +37,7 @@ bool test_forward_Double(){
   warr[idx++] = 0.3;
   warr[idx++] = 0.2;
 
-
-  serialDBL->init(warr);
+  serialDBL->setWeights(warr);
 
   serialDBL->printf_Network("w_and_dw_tests.bin");
   double *input = new double[2];
@@ -56,10 +46,8 @@ bool test_forward_Double(){
 
   double *output = new double[1];
 
-
 	serialDBL->feedForward(input, output);
 
-  //printf("output = %.20f\n", output[0]);
 
   //              0.73622649825740200000
   if(output[0] != 0.73622649825740249518) return false;
@@ -81,10 +69,9 @@ bool test_backward_Double(){
   topology->addLayer(2);
   topology->addLayer(1);
 
-  AnnSerialDBL  *serialDBL = new AnnSerialDBL();
+  AnnSerialDBL  *serialDBL = new AnnSerialDBL(topology);
   double alpha = 0.7;
   double eta = 0.25;
-  serialDBL->prepare(topology);
 
   double *warr = new double[9];
   int idx = 0;
@@ -100,8 +87,7 @@ bool test_backward_Double(){
   warr[idx++] = 0.3;
   warr[idx++] = 0.2;
 
-
-  serialDBL->init(warr);
+  serialDBL->setWeights(warr);
 
   double *input = new double[2];
   input[0] = 1;
@@ -112,9 +98,6 @@ bool test_backward_Double(){
 
 
 	serialDBL->train(input, output, alpha, eta);
-
-  //printf("output = %.20f\n", output[0]);
-
 
   double *warr2 = serialDBL->getWeights();
   // for(int i = 0; i < 9; i++)
@@ -164,16 +147,12 @@ bool test_backward_Double(){
 
 bool test_forwardFLT(){
 
-  // int arr[] = {2,2,1};
-
   Topology *topology = new Topology();
   topology->addLayer(2);
   topology->addLayer(2);
   topology->addLayer(1);
 
-  AnnSerialFLT  *serialFLT = new AnnSerialFLT();
-
-  serialFLT->prepare(topology);
+  AnnSerialFLT  *serialFLT = new AnnSerialFLT(topology);
 
   float *warr = new float[9];
   int idx = 0;
@@ -190,7 +169,7 @@ bool test_forwardFLT(){
   warr[idx++] = 0.2;
 
 
-  serialFLT->init(warr);
+  serialFLT->setWeights(warr);
 
   float *input = new float[2];
   input[0] = 1;
@@ -206,8 +185,6 @@ bool test_forwardFLT(){
   //              0.7362264983
   if(output[0] != 0.73622649908065795898) return false;
 
-
-
   delete [] warr;
   delete [] input;
   delete [] output;
@@ -222,10 +199,9 @@ bool test_backwardFLT(){
   topology->addLayer(2);
   topology->addLayer(1);
 
-  AnnSerialFLT  *serialFLT = new AnnSerialFLT();
+  AnnSerialFLT  *serialFLT = new AnnSerialFLT(topology);
   float alpha = 0.7;
   float eta = 0.25;
-  serialFLT->prepare( topology);
 
   float *warr = new float[9];
   int idx = 0;
@@ -241,8 +217,7 @@ bool test_backwardFLT(){
   warr[idx++] = 0.3;
   warr[idx++] = 0.2;
 
-
-  serialFLT->init(warr);
+  serialFLT->setWeights(warr);
 
   float *input = new float[2];
   input[0] = 1;
@@ -253,8 +228,6 @@ bool test_backwardFLT(){
 
 
 	serialFLT->train(input, output, alpha, eta);
-
-  //printf("output = %.20f\n", output[0]);
 
 
   float *warr2 = serialFLT->getWeights();
@@ -299,19 +272,12 @@ bool test_backwardFLT(){
 }
 
 bool test_File_Double(){
-  // int arr[] = {2,2,1};
-	// setTopology(topolygy, arr, sizeof(arr)/sizeof(arr[0]));
-  // return true;
-
   Topology *topology = new Topology();
   topology->addLayer(2);
   topology->addLayer(2);
   topology->addLayer(1);
 
-  AnnSerialDBL  *serialDBL = new AnnSerialDBL();
-
-
-  serialDBL->prepare(topology);
+  AnnSerialDBL  *serialDBL = new AnnSerialDBL(topology);
 
   double *warr = new double[9];
   int idx = 0;
@@ -328,7 +294,7 @@ bool test_File_Double(){
   warr[idx++] = 0.2;
 
 
-  serialDBL->init(warr);
+  serialDBL->setWeights(warr);
 
   double *input = new double[2];
   input[0] = 1;
@@ -349,20 +315,17 @@ bool test_File_Double(){
   //*********************************************************************************
   AnnSerialDBL *serialDBL_2=new AnnSerialDBL("w_and_dw_tests.bin");
 
-  serialDBL_2->prepare( NULL);
-
-  serialDBL_2->init(NULL);
-
   Topology* tp=serialDBL_2->getTopology();
   if(tp->getLayerSize(0)!=2) return false;
   if(tp->getLayerSize(1)!=2) return false;
   if(tp->getLayerSize(2)!=1) return false;
 
-
   double *warr2 = serialDBL_2->getWeights();
   for(int i=0;i<9;i++){
-      if(warr[i]!=warr2[i])
+      if(warr[i]!=warr2[i]){
+          // printf("%.10f    %.10f\n", warr[i],warr2[i]);
        return false;
+     }
   }
 
   input[0] = 1;
@@ -387,10 +350,6 @@ bool test_File_Double(){
 
 bool test_Topology_From_File(){
   AnnSerialDBL *serialDBL_2=new AnnSerialDBL("w_and_dw_tests.bin");
-
-
-
-  serialDBL_2->prepare(NULL);
 
   Topology* tp=serialDBL_2->getTopology();
   if(tp->getLayerSize(0)!=2) return false;

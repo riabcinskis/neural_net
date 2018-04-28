@@ -31,28 +31,10 @@ bool Random::nextBool(){
 }
 
 
-//temp
-int AnnSerialDBL::getMaxOutput(){
-	double max = 0;
-	int index = 0;
-	//cout << l[L - 1] - 1 << endl;
-	for (int i = 0; i < l[L - 1] - 1; i++) {
-		if (a_arr[s[L - 1] + i] >= max) {
-			max = a_arr[s[L - 1] + i];
-			index = i;
-			/*cout << a_arr[s[L - 1] + i] << " ";*/
-		}
-		//cout << a_arr[s[L - 1] + i] << " ";
-	}
-	//cout << endl;
-	//cout << index << " " << max << endl;
-	return index;
-}
 //*****************************
 //
 // Topology
 //
-
 Topology::Topology(){
 	ml = new vector<int>();
 }
@@ -117,49 +99,10 @@ void Topology::readTopology(FILE *file){
 }
 
 
-/* sudeti funkcijas i private */
-
-double AnnSerialDBL::f(double x) {
-	//return atan(x)/M_PI + 0.5;
-	double y = 1 + exp(-x);
-	return 1 / y;
-}
-
-double AnnSerialDBL::f_deriv(double x) {
-	//return 1.0 / (1+x*x);
-	return exp(-x) / pow((1 + exp(-x)), 2);
-}
-
-double AnnSerialDBL::gL(double a, double z, double t) {
-	double w = f_deriv(z) * (a - t);
-	return w;
-}
-
-double AnnSerialDBL::w_gradient(int layer_id, int w_i, int w_j) {
-	return a_arr[s[layer_id] + w_i] * gjl[s[layer_id + 1] + w_j];
-}
-
-
-
-void AnnSerialDBL::calc_gjl(){
-	for (int i = L - 1; i >= 0; i--) {
-		for (int j = 0; j < l[i]-1; j++) {
-			if (L - 1 == i) {
-				gjl[s[i] + j] = gL(a_arr[s[i] + j], z_arr[s[i] + j], t_arr[j]);
-			}
-			else {
-				gjl[s[i] + j] = f_deriv(z_arr[s[i] + j]);
-				double sum = 0;
-				for (int k = 0; k < l[i + 1] - 1; k++) {
-					sum += w_arr[sw[i] + j*(l[i + 1] - 1) + k] * gjl[s[i + 1] + k];
-				}
-				gjl[s[i] + j] *= sum;
-			}
-		}
-	}
-}
-
 //*********
+//
+//Data_Double
+//
 double * Data_Double::getInput(int index){
 	return data[index].input;
 }
@@ -177,30 +120,41 @@ void Data_Double::setSizes(int input_size, int output_size){
 	outputs = output_size;
 }
 
-//****************
+
+//*********
+//
+//Data_Float
+//
+float * Data_Float::getInput(int index){
+	return data[index].input;
+}
+
+float * Data_Float::getOutput(int index){
+	return data[index].output;
+}
+
+void Data_Float::addSample(Sample_Float sample){
+	data.push_back(sample);
+}
+
+void Data_Float::setSizes(int input_size, int output_size){
+	inputs = input_size;
+	outputs = output_size;
+}
 
 
-//****************
-void AnnSerialDBL::prepare(Topology *top=NULL){
+//***********************************
+//
+//AnnSerialDBL
+//
+void AnnSerialDBL::prepare(Topology *top){
 
-  if(!filename.empty()){
-    FILE * p1File;
-    const char * c = filename.c_str();
-    p1File = fopen(c, "rb");
-    cTopology=new Topology();
-    cTopology->readTopology(p1File);
-    fclose (p1File);
-  }
-	else cTopology = top;
-
-
-	inputCount = cTopology->getLayerSize(0);
-	outputCount = cTopology->getLayerSize(cTopology->getLayerCount() - 1);
+  cTopology = top;
 
 	l = new int[cTopology->getLayerCount()];
 	s = new int[cTopology->getLayerCount()];
 
-	neuronCount = cTopology->obtainNeuronCount();
+	int neuronCount = cTopology->obtainNeuronCount();
 	int weightCount = cTopology->obtainWeightCount();
 
 	a_arr = new double[neuronCount];
@@ -217,7 +171,7 @@ void AnnSerialDBL::prepare(Topology *top=NULL){
 	gjl = new double[neuronCount];
 }
 
-void AnnSerialDBL::init(double w_arr_1[] = NULL){
+void AnnSerialDBL::init(FILE * pFile=NULL){
   L = cTopology->getLayerCount();
 
 	Random *rnd = new Random();
@@ -241,57 +195,46 @@ void AnnSerialDBL::init(double w_arr_1[] = NULL){
 	}
 
 
-  	//Svoriu kiekiai l-ame sluoksnyje
-  	for (int i = 0; i < L - 1; i++) {
-  		W[i] = l[i] * (l[i + 1] - 1);
-  		sw[i] = 0;
-  		if (i != 0) {
-  			for (int j = 0; j < i; j++) {
-  				sw[i] += W[j];
-  			}
-  		}
+	//Svoriu kiekiai l-ame sluoksnyje
+	for (int i = 0; i < L - 1; i++) {
+		W[i] = l[i] * (l[i + 1] - 1);
+		sw[i] = 0;
+		if (i != 0) {
+			for (int j = 0; j < i; j++) {
+				sw[i] += W[j];
+			}
+		}
+  }
+
+
+  if (pFile==NULL) {
+    for (int i = 0; i < L - 1; i++)
+      for (int j = 0; j < W[i]; j++) {
+        w_arr[sw[i] + j] =(rnd->next()*2-1); // (double)rand() / double(RAND_MAX);
+        dw_arr[sw[i] + j] = 0.0;
     }
-
-
-    if (filename.empty()) {
-      if(w_arr_1==NULL){
-        for (int i = 0; i < L - 1; i++)
-          for (int j = 0; j < W[i]; j++) {
-              w_arr[sw[i] + j] = (rnd->next()*2-1); // (double)rand() / double(RAND_MAX);
-              dw_arr[sw[i] + j] = 0;
-
-
-          }
-      }
-      else {
-        for (int i = 0; i < L - 1; i++)
-          for (int j = 0; j < W[i]; j++) {
-            w_arr[sw[i] + j] = w_arr_1[sw[i] + j];
-            dw_arr[sw[i] + j] = 0.0;
-        }
-      }
-    }
-    else {
-      readf_Network();
-    }
+  }
+  else {
+    readf_Network(pFile);
+  }
 
 }
 
 void AnnSerialDBL::train(double *a, double *b, double alpha, double eta){
 
 
-	for (int i = 0; i < inputCount; i++) {
+	for (int i = 0; i < cTopology->getLayerSize(0); i++) {
 		a_arr[i] = a[i];
 	}
 
-	for (int j = 0; j < neuronCount; j++) {
+	for (int j = 0; j < cTopology->obtainNeuronCount(); j++) {
 		z_arr[j] = 0;
 	}
 
 	calc_feedForward();
 
 
-	for (int i = 0; i < outputCount; i++) {
+	for (int i = 0; i < cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++) {
 		t_arr[i] = b[i];
 	}
 	calc_gjl();
@@ -310,39 +253,18 @@ void AnnSerialDBL::train(double *a, double *b, double alpha, double eta){
 }
 
 void AnnSerialDBL::feedForward(double *a, double *b){
-	for (int i = 0; i < inputCount; i++) {
+	for (int i = 0; i < cTopology->getLayerSize(0); i++) {
 		a_arr[i] = a[i];
 	}
 
-	for (int j = 0; j < neuronCount; j++) {
+	for (int j = 0; j < cTopology->obtainNeuronCount(); j++) {
 		z_arr[j] = 0;
 	}
 
 	calc_feedForward();
 
-	for (int i = 0; i<outputCount; i++)
+	for (int i = 0; i<cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++)
 		b[i] = a_arr[s[L - 1] + i];
-}
-
-double AnnSerialDBL::obtainError(double *b){
-	double error = 0;
-
-	for(int i = 0; i < l[L-1] - 1; i++){
-		//printf("%f\t %.15e\n", b[i], a_arr[s[L-1] + i]);
-
-		double tmp = b[i] - a_arr[s[L-1] + i];
-		error += tmp*tmp;
-	}
-	return error;
-}
-
-void AnnSerialDBL::print_out(){
-	printf("z = %e\n", z_arr[s[L-1]+0]);
-	printf("g = %e\n", gjl[s[L-1]+0]);
-
-	for(int i = 0; i < l[L-2]; i++){
-		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
-	}
 }
 
 void AnnSerialDBL::calc_feedForward(){
@@ -356,6 +278,60 @@ void AnnSerialDBL::calc_feedForward(){
 			a_arr[s[i + 1] + k] = f(z_arr[s[i + 1] + k]);
 		}
 	}
+}
+
+void AnnSerialDBL::calc_gjl(){
+	for (int i = L - 1; i >= 0; i--) {
+		for (int j = 0; j < l[i]-1; j++) {
+			if (L - 1 == i) {
+				gjl[s[i] + j] = gL(a_arr[s[i] + j], z_arr[s[i] + j], t_arr[j]);
+			}
+			else {
+				gjl[s[i] + j] = f_deriv(z_arr[s[i] + j]);
+				double sum = 0;
+				for (int k = 0; k < l[i + 1] - 1; k++) {
+					sum += w_arr[sw[i] + j*(l[i + 1] - 1) + k] * gjl[s[i + 1] + k];
+				}
+				gjl[s[i] + j] *= sum;
+			}
+		}
+	}
+}
+
+double AnnSerialDBL::delta_w(double grad, double dw, double alpha, double eta) {
+	return -eta*grad + alpha*dw;
+}
+
+double AnnSerialDBL::gL(double a, double z, double t) {
+	double w = f_deriv(z) * (a - t);
+	return w;
+}
+
+double AnnSerialDBL::f(double x) {
+	//return atan(x)/M_PI + 0.5;
+	double y = 1 + exp(-x);
+	return 1 / y;
+}
+
+double AnnSerialDBL::f_deriv(double x) {
+	//return 1.0 / (1+x*x);
+	return exp(-x) / pow((1 + exp(-x)), 2);
+}
+
+double AnnSerialDBL::w_gradient(int layer_id, int w_i, int w_j) {
+	return a_arr[s[layer_id] + w_i] * gjl[s[layer_id + 1] + w_j];
+}
+
+double AnnSerialDBL::obtainError(double *b){
+	double error = 0;
+
+	for(int i = 0; i < l[L-1] - 1; i++){
+		//printf("%f\t %.15e\n", b[i], a_arr[s[L-1] + i]);
+
+		double tmp = b[i] - a_arr[s[L-1] + i];
+		error += tmp*tmp;
+	}
+	return error;
 }
 
 void AnnSerialDBL::destroy(){
@@ -389,6 +365,7 @@ void AnnSerialDBL::destroy(){
 double* AnnSerialDBL::getWeights(){
 	return w_arr;
 }
+
 double* AnnSerialDBL::getDWeights(){
 	return dw_arr;
 }
@@ -401,8 +378,13 @@ Topology* AnnSerialDBL::getTopology(){
   return cTopology;
 }
 
-double AnnSerialDBL::delta_w(double grad, double dw, double alpha, double eta) {
-	return -eta*grad + alpha*dw;
+void AnnSerialDBL::print_out(){
+	printf("z = %e\n", z_arr[s[L-1]+0]);
+	printf("g = %e\n", gjl[s[L-1]+0]);
+
+	for(int i = 0; i < l[L-2]; i++){
+		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
+	}
 }
 
 void AnnSerialDBL::printf_Network(string output_filename){
@@ -415,104 +397,24 @@ void AnnSerialDBL::printf_Network(string output_filename){
   fclose (pFile);
 }
 
-void AnnSerialDBL::readf_Network(){
-  FILE * pFile;
-  const char * c = filename.c_str();
-  pFile = fopen (c, "rb");
-
- int size=0;
- (void)fread (&size , sizeof(int), 1, pFile);
- int* abc=new int[size];
- (void)fread (abc , sizeof(int), size, pFile);
-
-  //cTopology->readTopology(pFile);
-  (void)fread (w_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
-  (void)fread (dw_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
-  fclose (pFile);
+void AnnSerialDBL::readf_Network(FILE *pFile){
+ (void)fread (w_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
+ (void)fread (dw_arr , sizeof(double), cTopology->obtainWeightCount(), pFile);
 }
-
-
-
-
-
 
 
 
 //*************
-
-float AnnSerialFLT::f(float x) {
-		//return atanf(x)/M_PI + 0.5;
-	float y = 1 + exp(-x);
-	return 1 / y;
-}
-
-float AnnSerialFLT::f_deriv(float x) {
-	//return  1.0 / (1.0+ x*x);
-	 return exp(-x) / pow((1 + exp(-x)), 2);
-}
-
-float AnnSerialFLT::gL(float a, float z, float t) {
-	float w = f_deriv(z) * (a - t);
-	return w;
-}
-
-float AnnSerialFLT::w_gradient(int layer_id, int w_i, int w_j) {
-	return a_arr[s[layer_id] + w_i] * gjl[s[layer_id + 1] + w_j];
-}
-
-
-
-void AnnSerialFLT::calc_gjl(){
-	for (int i = L - 1; i >= 0; i--) {
-		for (int j = 0; j < l[i]-1; j++) {
-			if (L - 1 == i) {
-				gjl[s[i] + j] = gL(a_arr[s[i] + j], z_arr[s[i] + j], t_arr[j]);
-			}
-			else {
-				gjl[s[i] + j] = f_deriv(z_arr[s[i] + j]);
-				float sum = 0;
-				for (int k = 0; k < l[i + 1] - 1; k++) {
-					sum += w_arr[sw[i] + j*(l[i + 1] - 1) + k] * gjl[s[i + 1] + k];
-				}
-				gjl[s[i] + j] *= sum;
-			}
-		}
-	}
-}
-
-//*********
-float * Data_Float::getInput(int index){
-	return data[index].input;
-}
-
-float * Data_Float::getOutput(int index){
-	return data[index].output;
-}
-
-void Data_Float::addSample(Sample_Float sample){
-	data.push_back(sample);
-}
-
-void Data_Float::setSizes(int input_size, int output_size){
-	inputs = input_size;
-	outputs = output_size;
-}
-
-//****************
-
-
-//****************
+//
+//AnnSerialFLT
+//
 void AnnSerialFLT::prepare( Topology *top){
 	cTopology = top;
-
-
-	inputCount = top->getLayerSize(0);
-	outputCount = top->getLayerSize(top->getLayerCount() - 1);
 
 	l = new int[top->getLayerCount()];
 	s = new int[top->getLayerCount()];
 
-	neuronCount = cTopology->obtainNeuronCount();
+	int neuronCount = cTopology->obtainNeuronCount();
 	int weightCount = cTopology->obtainWeightCount();
 
 	a_arr = new float[neuronCount];
@@ -529,10 +431,10 @@ void AnnSerialFLT::prepare( Topology *top){
 	gjl = new float[neuronCount];
 }
 
-void AnnSerialFLT::init(float w_arr_1[] = NULL){
-  Random *rnd = new Random();
-
+void AnnSerialFLT::init(FILE *pFile=NULL){
   L = cTopology->getLayerCount();
+
+	Random *rnd = new Random();
 
 	//Neuronu kiekiai sluoksnyje
 	for (int i = 0; i < L; i++) {
@@ -552,6 +454,7 @@ void AnnSerialFLT::init(float w_arr_1[] = NULL){
 		a_arr[s[i + 1] - 1] = 1;
 	}
 
+
 	//Svoriu kiekiai l-ame sluoksnyje
 	for (int i = 0; i < L - 1; i++) {
 		W[i] = l[i] * (l[i + 1] - 1);
@@ -561,35 +464,28 @@ void AnnSerialFLT::init(float w_arr_1[] = NULL){
 				sw[i] += W[j];
 			}
 		}
-		if (w_arr_1 == NULL) {
-			for (int j = 0; j < W[i]; j++) {
-				w_arr[sw[i] + j] = (rnd->next()*2-1); // (double)rand() / double(RAND_MAX);
-				dw_arr[sw[i] + j] = 0;
-			}
-		}
-		else {
-			for (int j = 0; j < W[i]; j++) {
-				w_arr[sw[i] + j] = w_arr_1[sw[i] + j];
-				dw_arr[sw[i] + j] = 0;
-			}
-		}
+  }
 
-	}
+  for (int i = 0; i < L - 1; i++)
+    for (int j = 0; j < W[i]; j++) {
+      w_arr[sw[i] + j] =(rnd->next()*2-1); // (double)rand() / double(RAND_MAX);
+      dw_arr[sw[i] + j] = 0.0;
+  }
 }
 
 void AnnSerialFLT::train(float *a, float *b, float alpha, float eta){
-	for (int i = 0; i < inputCount; i++) {
+	for (int i = 0; i < cTopology->getLayerSize(0); i++) {
 		a_arr[i] = a[i];
 	}
 
-	for (int j = 0; j < neuronCount; j++) {
+	for (int j = 0; j < cTopology->obtainNeuronCount(); j++) {
 		z_arr[j] = 0;
 	}
 
 	calc_feedForward();
 
 
-	for (int i = 0; i < outputCount; i++) {
+	for (int i = 0; i < cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++) {
 		t_arr[i] = b[i];
 	}
 	calc_gjl();
@@ -606,11 +502,11 @@ void AnnSerialFLT::train(float *a, float *b, float alpha, float eta){
 }
 
 void AnnSerialFLT::feedForward(float *a, float *b){
-	for (int i = 0; i < inputCount; i++) {
+	for (int i = 0; i < cTopology->getLayerSize(0); i++) {
 		a_arr[i] = a[i];
 	}
 
-	for (int j = 0; j < neuronCount; j++) {
+	for (int j = 0; j < cTopology->obtainNeuronCount(); j++) {
 		z_arr[j] = 0;
 	}
 
@@ -618,26 +514,8 @@ void AnnSerialFLT::feedForward(float *a, float *b){
 	calc_feedForward();
 
 
-	for (int i = 0; i<outputCount; i++)
+	for (int i = 0; i<cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++)
 		b[i] = a_arr[s[L - 1] + i];
-}
-
-float AnnSerialFLT::obtainError(float *b){
-	float error = 0;
-	for(int i = 0; i < l[L-1] - 1; i++){
-		float tmp = b[i] - a_arr[s[L-1] + i];
-		error += tmp*tmp;
-	}
-	return error;
-}
-
-void AnnSerialFLT::print_out(){
-  printf("z = %e\n", z_arr[s[L-1]+0]);
-	printf("g = %e\n", gjl[s[L-1]+0]);
-
-	for(int i = 0; i < l[L-2]; i++){
-		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
-	}
 }
 
 void AnnSerialFLT::calc_feedForward(){
@@ -651,6 +529,57 @@ void AnnSerialFLT::calc_feedForward(){
 			a_arr[s[i + 1] + k] = f(z_arr[s[i + 1] + k]);
 		}
 	}
+}
+
+void AnnSerialFLT::calc_gjl(){
+	for (int i = L - 1; i >= 0; i--) {
+		for (int j = 0; j < l[i]-1; j++) {
+			if (L - 1 == i) {
+				gjl[s[i] + j] = gL(a_arr[s[i] + j], z_arr[s[i] + j], t_arr[j]);
+			}
+			else {
+				gjl[s[i] + j] = f_deriv(z_arr[s[i] + j]);
+				float sum = 0;
+				for (int k = 0; k < l[i + 1] - 1; k++) {
+					sum += w_arr[sw[i] + j*(l[i + 1] - 1) + k] * gjl[s[i + 1] + k];
+				}
+				gjl[s[i] + j] *= sum;
+			}
+		}
+	}
+}
+
+float AnnSerialFLT::delta_w(float grad, float dw, float alpha, float eta) {
+	return -eta*grad + alpha*dw;
+}
+
+float AnnSerialFLT::gL(float a, float z, float t) {
+	float w = f_deriv(z) * (a - t);
+	return w;
+}
+
+float AnnSerialFLT::f(float x) {
+		//return atanf(x)/M_PI + 0.5;
+	float y = 1 + exp(-x);
+	return 1 / y;
+}
+
+float AnnSerialFLT::f_deriv(float x) {
+	//return  1.0 / (1.0+ x*x);
+	 return exp(-x) / pow((1 + exp(-x)), 2);
+}
+
+float AnnSerialFLT::w_gradient(int layer_id, int w_i, int w_j) {
+	return a_arr[s[layer_id] + w_i] * gjl[s[layer_id + 1] + w_j];
+}
+
+float AnnSerialFLT::obtainError(float *b){
+	float error = 0;
+	for(int i = 0; i < l[L-1] - 1; i++){
+		float tmp = b[i] - a_arr[s[L-1] + i];
+		error += tmp*tmp;
+	}
+	return error;
 }
 
 void AnnSerialFLT::destroy(){
@@ -685,6 +614,15 @@ float* AnnSerialFLT::getWeights(){
 	return w_arr;
 }
 
+void AnnSerialFLT::print_out(){
+  printf("z = %e\n", z_arr[s[L-1]+0]);
+	printf("g = %e\n", gjl[s[L-1]+0]);
+
+	for(int i = 0; i < l[L-2]; i++){
+		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
+	}
+}
+
 void AnnSerialFLT::printf_Network(string filename){
   FILE * pFile;
   const char * c = filename.c_str();
@@ -703,8 +641,4 @@ void AnnSerialFLT::printf_Network(string filename){
   fwrite (w_arr_dbl , sizeof(double), weightCount, pFile);
   fwrite (dw_arr_dbl , sizeof(double), weightCount, pFile);
   fclose (pFile);
-}
-
-float AnnSerialFLT::delta_w(float grad, float dw, float alpha, float eta) {
-	return -eta*grad + alpha*dw;
 }

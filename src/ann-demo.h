@@ -14,13 +14,7 @@ class XOR : public Data_Double{
 
 		int getResult(int index);
 
-		XOR(){
-			inputs = 2;
-			outputs = 2;
-		}
-		void printInputs(int index);
-
-		void printOutputs(int index);
+		XOR(){};
 };
 
 class XOR_Float : public Data_Float{
@@ -29,13 +23,7 @@ class XOR_Float : public Data_Float{
 
 		int getResult(int index);
 
-		XOR_Float(){
-			inputs = 2;
-			outputs = 2;
-		}
-		void printInputs(int index);
-
-		void printOutputs(int index);
+		XOR_Float(){};
 };
 
 //************************************************************************
