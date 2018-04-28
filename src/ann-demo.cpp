@@ -1,9 +1,7 @@
 #include "ann-demo.h"
 
-void XOR::generate(int n)
-{
-	for (int i = 0; i < n / 4; i++)
-	{
+void XOR::generate(int n){
+	for (int i = 0; i < n / 4; i++){
 		for (double j = 0; j < 2; j++) {
 			for (double k = 0; k < 2; k++) {
 				double * input = new double[2];
@@ -34,10 +32,8 @@ int XOR::getResult(int index){
 		 return index1;
 }
 
-void XOR_Float::generate(int n)
-{
-	for (int i = 0; i < n / 4; i++)
-	{
+void XOR_Float::generate(int n){
+	for (int i = 0; i < n / 4; i++){
 		for (float j = 0; j < 2; j++) {
 			for (float k = 0; k < 2; k++) {
 				float * input = new float[2];
@@ -193,12 +189,8 @@ void PictureData::ReadData(string Mnist_file, string MnistLabel_file){
 }
 
 //Nuskaito inputus is duomenu failu
-void PictureData::readMnist(string filename, vector<double*> &arr)
-{
+void PictureData::readMnist(string filename, vector<double*> &arr){
     ifstream file (filename, ios::binary);
-
-	//	outputs = 10;
-
     if (file.is_open())
     {
         int magic_number = 0;
@@ -214,21 +206,16 @@ void PictureData::readMnist(string filename, vector<double*> &arr)
         file.read((char*) &n_cols, sizeof(n_cols));
         n_cols = reverseInt(n_cols);
 				inputs = n_rows*n_cols;
-			//	printf("%d\n", number_of_images);
 
-        for(int i = 0; i < number_of_images; ++i)
-        {
+        for(int i = 0; i < number_of_images; ++i){
             double* tp = new double[inputs];
             int index;
-            for(int r = 0; r < n_rows; r++)
-            {
-                for(int c = 0; c < n_cols; c++)
-                {
+            for(int r = 0; r < n_rows; r++){
+                for(int c = 0; c < n_cols; c++){
                     unsigned char temp = 0;
                     file.read((char*) &temp, sizeof(temp));
                     index = r * n_cols + c;
                     tp[index] = ((double)temp / 255 * 1.0);
-										//printf("tp[%d]=%f\n",index, tp[index]);
                 }
             }
             arr.push_back(tp);
@@ -239,19 +226,16 @@ void PictureData::readMnist(string filename, vector<double*> &arr)
 }
 
 //Nuskaito labelius is failo
-void PictureData::readMnistLabel(string filename, vector<int> &vec)
-{
+void PictureData::readMnistLabel(string filename, vector<int> &vec){
     ifstream file (filename, ios::binary);
-    if (file.is_open())
-    {
+    if (file.is_open()){
         int magic_number = 0;
         int number_of_images = 0;
         file.read((char*) &magic_number, sizeof(magic_number));
         magic_number = reverseInt(magic_number);
         file.read((char*) &number_of_images,sizeof(number_of_images));
         number_of_images = reverseInt(number_of_images);
-        for(int i = 0; i < number_of_images; ++i)
-        {
+        for(int i = 0; i < number_of_images; ++i){
             unsigned char temp = 0;
             file.read((char*) &temp, sizeof(temp));
             vec.push_back((int)temp);
@@ -261,8 +245,7 @@ void PictureData::readMnistLabel(string filename, vector<int> &vec)
 		}
 }
 
-void PictureData::pushTarget(int a, vector<double*> &targets)
-{
+void PictureData::pushTarget(int a, vector<double*> &targets){
 	double* temp = new double[10];
 
 	memset(temp, 0, 10*sizeof(double));
@@ -272,8 +255,7 @@ void PictureData::pushTarget(int a, vector<double*> &targets)
 }
 
 //Paveiksliuku nuskaitymui
-int PictureData::reverseInt(int i)
-{
+int PictureData::reverseInt(int i){
   unsigned char ch1, ch2, ch3, ch4;
   ch1 = i&255;
   ch2 = (i >> 8)&255;
@@ -286,7 +268,6 @@ int PictureData::reverseInt(int i)
 //
 // PictureDataFlt
 //
-
 void PictureDataFlt::ReadData(string Mnist_file, string MnistLabel_file){
 	vector<float*> arr;
 	vector<int> vec;
@@ -305,14 +286,9 @@ void PictureDataFlt::ReadData(string Mnist_file, string MnistLabel_file){
 }
 
 //Nuskaito inputus is duomenu failu
-void PictureDataFlt::readMnist(string filename, vector<float*> &arr)
-{
+void PictureDataFlt::readMnist(string filename, vector<float*> &arr){
     ifstream file (filename, ios::binary);
-
-	//	outputs = 10;
-
-    if (file.is_open())
-    {
+    if (file.is_open()){
         int magic_number = 0;
         int number_of_images = 0;
         int n_rows = 0;
@@ -326,21 +302,16 @@ void PictureDataFlt::readMnist(string filename, vector<float*> &arr)
         file.read((char*) &n_cols, sizeof(n_cols));
         n_cols = reverseInt(n_cols);
 				inputs = n_rows*n_cols;
-			//	printf("%d\n", number_of_images);
 
-        for(int i = 0; i < number_of_images; ++i)
-        {
+        for(int i = 0; i < number_of_images; ++i){
             float* tp = new float[inputs];
             int index;
-            for(int r = 0; r < n_rows; r++)
-            {
-                for(int c = 0; c < n_cols; c++)
-                {
+            for(int r = 0; r < n_rows; r++){
+                for(int c = 0; c < n_cols; c++){
                     unsigned char temp = 0;
                     file.read((char*) &temp, sizeof(temp));
                     index = r * n_cols + c;
                     tp[index] = ((float)(temp / 255.));
-										//printf("tp[%d]=%f\n",index, tp[index]);
                 }
             }
             arr.push_back(tp);
@@ -351,19 +322,16 @@ void PictureDataFlt::readMnist(string filename, vector<float*> &arr)
 }
 
 //Nuskaito labelius is failo
-void PictureDataFlt::readMnistLabel(string filename, vector<int> &vec)
-{
+void PictureDataFlt::readMnistLabel(string filename, vector<int> &vec){
     ifstream file (filename, ios::binary);
-    if (file.is_open())
-    {
+    if (file.is_open()){
         int magic_number = 0;
         int number_of_images = 0;
         file.read((char*) &magic_number, sizeof(magic_number));
         magic_number = reverseInt(magic_number);
         file.read((char*) &number_of_images,sizeof(number_of_images));
         number_of_images = reverseInt(number_of_images);
-        for(int i = 0; i < number_of_images; ++i)
-        {
+        for(int i = 0; i < number_of_images; ++i){
             unsigned char temp = 0;
             file.read((char*) &temp, sizeof(temp));
             vec.push_back((int)temp);
@@ -373,8 +341,7 @@ void PictureDataFlt::readMnistLabel(string filename, vector<int> &vec)
 		}
 }
 
-void PictureDataFlt::pushTarget(int a, vector<float*> &targets)
-{
+void PictureDataFlt::pushTarget(int a, vector<float*> &targets){
 	float* temp = new float[10];
 
 	memset(temp, 0, 10*sizeof(float));
@@ -384,8 +351,7 @@ void PictureDataFlt::pushTarget(int a, vector<float*> &targets)
 }
 
 //Paveiksliuku nuskaitymui
-int PictureDataFlt::reverseInt(int i)
-{
+int PictureDataFlt::reverseInt(int i){
   unsigned char ch1, ch2, ch3, ch4;
   ch1 = i&255;
   ch2 = (i >> 8)&255;

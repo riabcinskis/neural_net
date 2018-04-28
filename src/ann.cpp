@@ -141,8 +141,7 @@ double AnnSerialDBL::w_gradient(int layer_id, int w_i, int w_j) {
 
 
 
-void AnnSerialDBL::calc_gjl()
-{
+void AnnSerialDBL::calc_gjl(){
 	for (int i = L - 1; i >= 0; i--) {
 		for (int j = 0; j < l[i]-1; j++) {
 			if (L - 1 == i) {
@@ -161,23 +160,19 @@ void AnnSerialDBL::calc_gjl()
 }
 
 //*********
-double * Data_Double::getInput(int index)
-{
+double * Data_Double::getInput(int index){
 	return data[index].input;
 }
 
-double * Data_Double::getOutput(int index)
-{
+double * Data_Double::getOutput(int index){
 	return data[index].output;
 }
 
-void Data_Double::addSample(Sample_Double sample)
-{
+void Data_Double::addSample(Sample_Double sample){
 	data.push_back(sample);
 }
 
-void Data_Double::setSizes(int input_size, int output_size)
-{
+void Data_Double::setSizes(int input_size, int output_size){
 	inputs = input_size;
 	outputs = output_size;
 }
@@ -186,8 +181,7 @@ void Data_Double::setSizes(int input_size, int output_size)
 
 
 //****************
-void AnnSerialDBL::prepare(Topology *top=NULL)
-{
+void AnnSerialDBL::prepare(Topology *top=NULL){
 
   if(!filename.empty()){
     FILE * p1File;
@@ -223,8 +217,7 @@ void AnnSerialDBL::prepare(Topology *top=NULL)
 	gjl = new double[neuronCount];
 }
 
-void AnnSerialDBL::init(double w_arr_1[] = NULL)
-{
+void AnnSerialDBL::init(double w_arr_1[] = NULL){
   L = cTopology->getLayerCount();
 
 	Random *rnd = new Random();
@@ -284,8 +277,7 @@ void AnnSerialDBL::init(double w_arr_1[] = NULL)
 
 }
 
-void AnnSerialDBL::train(double *a, double *b, double alpha, double eta)
-{
+void AnnSerialDBL::train(double *a, double *b, double alpha, double eta){
 
 
 	for (int i = 0; i < inputCount; i++) {
@@ -317,8 +309,7 @@ void AnnSerialDBL::train(double *a, double *b, double alpha, double eta)
 
 }
 
-void AnnSerialDBL::feedForward(double *a, double *b)
-{
+void AnnSerialDBL::feedForward(double *a, double *b){
 	for (int i = 0; i < inputCount; i++) {
 		a_arr[i] = a[i];
 	}
@@ -354,8 +345,7 @@ void AnnSerialDBL::print_out(){
 	}
 }
 
-void AnnSerialDBL::calc_feedForward()
-{
+void AnnSerialDBL::calc_feedForward(){
 	for (int i = 0; i < L - 1; i++) {//per sluoksnius einu+
 		for (int j = 0; j < l[i]; j++) { //kiek neuronu sluoksnyje+
 			for (int k = 0; k < l[i + 1] - 1; k++) {//per sekancio sluoksnio z+
@@ -368,8 +358,7 @@ void AnnSerialDBL::calc_feedForward()
 	}
 }
 
-void AnnSerialDBL::destroy()
-{
+void AnnSerialDBL::destroy(){
 	delete[] l;
 	l = NULL;
 	delete[] s;
@@ -415,7 +404,6 @@ Topology* AnnSerialDBL::getTopology(){
 double AnnSerialDBL::delta_w(double grad, double dw, double alpha, double eta) {
 	return -eta*grad + alpha*dw;
 }
-
 
 void AnnSerialDBL::printf_Network(string output_filename){
   FILE * pFile;

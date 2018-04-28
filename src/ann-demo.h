@@ -8,72 +8,59 @@
 
 using namespace std;
 
-class XOR : public Data_Double
-{
-public:
-	void generate(int n);
+class XOR : public Data_Double{
+	public:
+		void generate(int n);
 
-	int getResult(int index);
+		int getResult(int index);
 
-	XOR()
-	{
-		inputs = 2;
-		outputs = 2;
+		XOR(){
+			inputs = 2;
+			outputs = 2;
+		}
+		void printInputs(int index);
 
-	}
-	void printInputs(int index);
-
-	void printOutputs(int index);
+		void printOutputs(int index);
 };
 
-class XOR_Float : public Data_Float
-{
-public:
-	void generate(int n);
+class XOR_Float : public Data_Float{
+	public:
+		void generate(int n);
 
-	int getResult(int index);
+		int getResult(int index);
 
-	XOR_Float()
-	{
-		inputs = 2;
-		outputs = 2;
-		samples = 0;
-	}
-	void printInputs(int index);
+		XOR_Float(){
+			inputs = 2;
+			outputs = 2;
+			samples = 0;
+		}
+		void printInputs(int index);
 
-	void printOutputs(int index);
+		void printOutputs(int index);
 };
 
 //************************************************************************
 //                           Paveiksliukai
 //************************************************************************
 
-class PictureData : public Data_Double
-{
-public:
-    PictureData()
-    {
-
-    }
+class PictureData : public Data_Double{
+	public:
+    PictureData(){}
 
 		void ReadData(string Mnist_file, string MnistLabel_file);
-private:
+	private:
     void readMnist(string filename, vector<double*> &arr);
     void readMnistLabel(string filename, vector<int> &vec);
 		int reverseInt(int i);
 		void pushTarget(int a, vector<double*> &targets);
 };
 
-class PictureDataFlt : public Data_Float
-{
-public:
-    PictureDataFlt()
-    {
-
-    }
+class PictureDataFlt : public Data_Float{
+	public:
+    PictureDataFlt(){}
 
 		void ReadData(string Mnist_file, string MnistLabel_file);
-private:
+	private:
     void readMnist(string filename, vector<float*> &arr);
     void readMnistLabel(string filename, vector<int> &vec);
 		int reverseInt(int i);
@@ -119,22 +106,20 @@ class TrainConfig{
 };
 
 class PictureClassification{
-public:
-	PictureClassification() {}
+	public:
+		PictureClassification() {}
 
-	static void Train(TrainConfig *config);
-	static void Test(string Mnist_file,string MnistLabel_file, string file_load_network);
+		static void Train(TrainConfig *config);
+		static void Test(string Mnist_file,string MnistLabel_file, string file_load_network);
 
+	private:
+		static void train_network(PictureData pictures,AnnSerialDBL* serialDBL, TrainConfig *config);
+		static void test_network(PictureData pictures,AnnSerialDBL* serialDBL);
+		static int getMaxValue(double * a);
 
-
-private:
-	static void train_network(PictureData pictures,AnnSerialDBL* serialDBL, TrainConfig *config);
-	static void test_network(PictureData pictures,AnnSerialDBL* serialDBL);
-	static int getMaxValue(double * a);
-
-	static void train_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT, TrainConfig *config);
-	static void test_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT);
-	static int getMaxValue(float * a);
+		static void train_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT, TrainConfig *config);
+		static void test_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT);
+		static int getMaxValue(float * a);
 
 };
 
