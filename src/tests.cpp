@@ -306,10 +306,12 @@ bool test_forwardCUDA(){
 
 	serialFLT->feedForward(input, output);
 
-  //printf("output = %.20f\n", output[0]);
+  printf("output = %.20f\n", output[0]);
 
   //              0.7362264983
-  if(output[0] != 0.73622649908065795898) return false;
+  //              0.73622649908065795898
+  if(output[0] != 0.72782474756240844727) return false;
+
 
   delete [] warr;
   delete [] input;

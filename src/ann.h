@@ -252,6 +252,29 @@ class AnnCUDA : public AnnBase<float> {
   	float * t_arr;
   	float * gjl;
 
+    int *dv_l; int bc_l;
+    int *dv_s; int bc_s;
+
+    float *dv_a_arr; int bc_a_arr;
+    float *dv_z_arr; int bc_z_arr;
+
+    int *dv_W; int bc_W;
+    int *dv_sw; int bc_sw;
+
+    float *dv_w_arr; int bc_w_arr;
+    float *dv_dw_arr; int bc_dw_arr;
+
+    float *dv_t_arr; int bc_t_arr;
+    float *dv_gjl; int bc_gjl;
+
+
+
+
+
+
+
+
+
   public:
   	void train(float *a, float *b, float alpha, float eta);
   	void feedForward(float *a, float *b);

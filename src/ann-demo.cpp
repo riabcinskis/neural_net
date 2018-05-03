@@ -706,7 +706,7 @@ int main (int c, char *v[]) {
 	// printf("\n\n\nFloat rezultatai: \n");
 	// xor_sample_Float();
   //
-   run_cuda_sample();
+   //run_cuda_sample();
 
 //	pic_sample();
 
