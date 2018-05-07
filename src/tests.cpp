@@ -306,11 +306,11 @@ bool test_forwardCUDA(){
 
 	serialFLT->feedForward(input, output);
 
-  printf("output = %.20f\n", output[0]);
+//  printf("output = %.20f\n", output[0]);
 
   //              0.7362264983
   //              0.73622649908065795898
-  if(output[0] != 0.72782474756240844727) return false;
+  if(output[0] != 0.73622649908065795898) return false;
 
 
   delete [] warr;
@@ -444,14 +444,15 @@ bool test_File_Double(){
   AnnSerialDBL *serialDBL_2=new AnnSerialDBL("w_and_dw_tests.bin");
 
   Topology* tp=serialDBL_2->getTopology();
+
   if(tp->getLayerSize(0)!=2) return false;
   if(tp->getLayerSize(1)!=2) return false;
   if(tp->getLayerSize(2)!=1) return false;
 
   double *warr2 = serialDBL_2->getWeights();
   for(int i=0;i<9;i++){
+      // printf("%.10f    %.10f\n", warr[i],warr2[i]);
       if(warr[i]!=warr2[i]){
-          // printf("%.10f    %.10f\n", warr[i],warr2[i]);
        return false;
      }
   }
@@ -461,11 +462,11 @@ bool test_File_Double(){
 
   serialDBL_2->feedForward(input, output);
 
+
   if(output[0] != 0.73622649825740249518) return false;
 
   if(serialDBL_2->getA()[2] != 1) return false;
   if(serialDBL_2->getA()[5] != 1) return false;
-
   delete [] warr;
   delete [] warr2;
   delete [] input;
@@ -474,6 +475,8 @@ bool test_File_Double(){
   delete serialDBL_2;
   delete topology;
   delete tp;
+
+  return true;
 }
 
 bool test_Topology_From_File(){

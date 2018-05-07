@@ -278,6 +278,11 @@ void AnnSerialDBL::calc_feedForward(){
 			a_arr[s[i + 1] + k] = f(z_arr[s[i + 1] + k]);
 		}
 	}
+  // for(int z=0;z<L;z++){
+  //   for(int k=0;k<l[z];k++){
+  //     printf("%.10f   %.10f\n", z_arr[s[z]+k],a_arr[s[z]+k]);
+  //   }
+  // }
 }
 
 void AnnSerialDBL::calc_gjl(){

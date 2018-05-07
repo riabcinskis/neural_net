@@ -40,6 +40,57 @@ namespace ann {
 		a_arr[s[layer_id] + idx] = a;
 	}
 
+	__global__ void
+	kernel_calc_gL(
+		int layer_id,
+		int *l,
+		int *s,
+		float *z_arr,
+		float *a_arr,
+		float *t_arr,
+		float *gjl
+	 ){
+
+		volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+		int neuron_count = l[layer_id];
+
+		if(idx >= neuron_count-1) return;
+
+		float f_deriv=expf(-z_arr[s[layer_id] + idx]) / powf((1 + expf(-z_arr[s[layer_id] + idx])),2.0f);
+		gjl[s[layer_id] + idx] = f_deriv*(a_arr[s[layer_id] + idx] - t_arr[idx]);
+	}
+
+	__global__ void
+	kernel_calc_gjL(
+		int layer_id,
+		int *l,
+		int *s,
+		int *sw,
+		float *z_arr,
+		float *a_arr,
+		float *t_arr,
+		float *gjl,
+		float *w_arr
+	 ){
+
+		volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+		int neuron_count = l[layer_id];
+		int neuron_count_next = l[layer_id+1];
+
+		if(idx >= neuron_count-1) return;
+
+		float f_deriv=expf(-z_arr[s[layer_id] + idx]) / powf((1 + expf(-z_arr[s[layer_id] + idx])),2.0f);
+
+		float sum = 0;
+		for (int k = 0; k < neuron_count_next-1; k++) {
+				sum += w_arr[sw[layer_id] + idx*(l[layer_id + 1] - 1) + k] * gjl[s[layer_id + 1] + k];
+		}
+
+		gjl[s[layer_id] + idx] = f_deriv*sum;
+	}
+
 }
 
 void run_cuda_sample(){
@@ -222,6 +273,7 @@ void AnnCUDA::train(float *a, float *b, float alpha, float eta){
 	for (int i = 0; i < cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++) {
 		t_arr[i] = b[i];
 	}
+
 	calc_gjl();
 
 	//back propogation:
@@ -254,8 +306,6 @@ void AnnCUDA::feedForward(float *a, float *b){
 
 void AnnCUDA::calc_feedForward(){
 
-
-
 	checkCudaErrors( cudaMemcpy(dv_z_arr, z_arr, bc_z_arr, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_a_arr, a_arr, bc_a_arr, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
@@ -264,7 +314,7 @@ void AnnCUDA::calc_feedForward(){
 
 	for (int i = 1; i < L; i++) {//per sluoksnius einu+
 
-	printf("current layer_id = %d\n", i);
+//	printf("current layer_id = %d\n", i);
 		int neuron_count = l[i];
 		int h = 32; // number of threads in block
 	  int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
@@ -281,6 +331,9 @@ void AnnCUDA::calc_feedForward(){
 			dv_a_arr,
 			dv_w_arr
 		);
+		// cudaError_t err = cudaGetLastError();
+		// if (err != cudaSuccess)
+		//     printf("Error: %s\n", cudaGetErrorString(err));
 
 		checkCudaErrors( cudaMemcpy(z_arr, dv_z_arr, bc_z_arr, cudaMemcpyDeviceToHost) );
 		checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
@@ -294,28 +347,66 @@ void AnnCUDA::calc_feedForward(){
 		// }
 		// for (int k = 0; k < l[i + 1] - 1; k++) {//per sekancio sluoksnio z
 		// 	a_arr[s[i + 1] + k] = f(z_arr[s[i + 1] + k]);
-		// }
-
+		//
 
 	}
+	// for(int z=0;z<L;z++){
+	// 	for(int k=0;k<l[z];k++){
+	// 		printf("%.10f   %.10f\n", z_arr[s[z]+k],a_arr[s[z]+k]);
+	// 	}
+	// }
 }
 
 void AnnCUDA::calc_gjl(){
-	for (int i = L - 1; i >= 0; i--) {
-		for (int j = 0; j < l[i]-1; j++) {
-			if (L - 1 == i) {
-				gjl[s[i] + j] = gL(a_arr[s[i] + j], z_arr[s[i] + j], t_arr[j]);
-			}
-			else {
-				gjl[s[i] + j] = f_deriv(z_arr[s[i] + j]);
-				float sum = 0;
-				for (int k = 0; k < l[i + 1] - 1; k++) {
-					sum += w_arr[sw[i] + j*(l[i + 1] - 1) + k] * gjl[s[i + 1] + k];
-				}
-				gjl[s[i] + j] *= sum;
-			}
+
+	checkCudaErrors( cudaMemcpy(dv_a_arr, a_arr, bc_a_arr, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_z_arr, z_arr, bc_z_arr, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_t_arr, t_arr, bc_t_arr, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_gjl, gjl, bc_gjl, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
+
+
+	// int last_layer_id=cTopology->getLayerCount()-1;
+	int last_layer_id=L-1;
+	int neuron_count = l[last_layer_id];
+	int h = 32; // number of threads in block
+	int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
+	dim3 grid_dim(g, 1, 1);
+	dim3 block_dim(h, 1, 1);
+
+
+	ann::kernel_calc_gL<<<grid_dim, block_dim>>>(
+		last_layer_id,
+		dv_l,
+		dv_s,
+		dv_z_arr,
+		dv_a_arr,
+		dv_t_arr,
+		dv_gjl
+	);
+
+	for (int i = L - 2; i >= 0; i--) {
+
+			neuron_count = l[i];
+			h = 32; // number of threads in block
+			g = (neuron_count + (h-neuron_count%h))/h; // number of grids
+			dim3 grid_dim(g, 1, 1);
+			dim3 block_dim(h, 1, 1);
+
+			ann::kernel_calc_gjL<<<grid_dim, block_dim>>>(
+				i,
+				dv_l,
+				dv_s,
+				dv_sw,
+				dv_z_arr,
+				dv_a_arr,
+				dv_t_arr,
+				dv_gjl,
+				dv_w_arr
+			);
 		}
-	}
+
+		checkCudaErrors( cudaMemcpy(gjl, dv_gjl, bc_gjl, cudaMemcpyDeviceToHost) );
 }
 
 float AnnCUDA::delta_w(float grad, float dw, float alpha, float eta) {
