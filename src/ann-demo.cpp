@@ -184,7 +184,7 @@ void pic_sample() {
 
 	double startTime = clock();
 
-  PictureClassification::Train(config);
+  //PictureClassification::Train(config);
 
   double endTime = clock();
   double runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
@@ -193,7 +193,7 @@ void pic_sample() {
 	printf("Apmokymas uztruko: %.5f sec\n", runtime);
 
 
-	PictureClassification::Test(test_images,test_labels, "network_data.bin");
+	//PictureClassification::Test(test_images,test_labels, "network_data.bin");
 
 	////
 	config->setImpl(IMPL_FLOAT);
@@ -207,7 +207,7 @@ void pic_sample() {
 
 	startTime = clock();
 
-  PictureClassification::Train(config);
+  //PictureClassification::Train(config);
 
   endTime = clock();
   runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
@@ -216,7 +216,31 @@ void pic_sample() {
 	printf("Apmokymas uztruko: %.5f sec\n", runtime);
 
 
-	PictureClassification::Test(test_images,test_labels, "network_data_flt.bin");
+	//PictureClassification::Test(test_images,test_labels, "network_data_flt.bin");
+
+	//****************Cuda********************************
+
+	config->setImpl(IMPL_CUDA);
+	config->setErrorsFileName("avg_max_error_cuda.txt");
+	config->setNetworkFileName("network_data_cuda.bin");
+	config->setEpochCount(2);
+	config->setTopology(topology);
+	config->setEta(0.005);
+	config->setAlpha(0.8);
+
+	printf("%s\n", "Pries train metoda");
+	startTime = clock();
+  PictureClassification::Train(config);
+
+  endTime = clock();
+	printf("%s\n", "Po train metodo");
+  runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
+
+	printf("=== CUDA \n");
+	printf("Apmokymas uztruko: %.5f sec\n", runtime);
+
+
+	PictureClassification::Test(test_images,test_labels, "network_data_cuda.bin");
 
 }
 
@@ -337,6 +361,21 @@ void PictureClassification::Train(TrainConfig *config){
 
 		delete serialFLT;
 	}
+
+	if(config->getImpl() == IMPL_CUDA){
+		AnnCUDA* serialCUDA = new AnnCUDA(topology);
+
+		float alpha = (float)config->getAlpha();
+	  float eta = (float)config->getEta();
+		PictureDataFlt pictures;
+		pictures.ReadData(config->getPicDataFileName(), config->getLabelDataFileName());
+
+		PictureClassification::train_network(pictures, serialCUDA, config);
+
+		serialCUDA->printf_Network(config->getNetworkFileName());
+
+		delete serialCUDA;
+	}
 }
 
 void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* serialDBL, TrainConfig *config){
@@ -347,8 +386,10 @@ void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* ser
   double *tmpArr = new double[10];
 	double *epoch_error=new double[epoch_count];
 	double *max_epoch_error=new double[epoch_count];
+	double *elapsedTime = new double[epoch_count];
 
   for (int j = 0; j < epoch_count; j++){
+		double startTime = clock();
     for (int i = 0; i < pictures.getNumberOfSamples()/1; i++) {
 
       serialDBL->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
@@ -362,6 +403,9 @@ void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* ser
 			}
 		}
 		printf("+\n");
+		double endTime = clock();
+		elapsedTime[j] = (double)(endTime-startTime)/CLOCKS_PER_SEC;
+		printf("Apmokymas uztruko: %.5f sec\n", elapsedTime[j]);
 		printf("Total error: %.10f\n", epoch_error[j]);
 		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 	}
@@ -373,7 +417,9 @@ void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* ser
 	}
 
 	for(int i=0;i<epoch_count;i++){
-			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
+		fprintf(file, "%d\t%.10f\t%.10f\t%.10f\n",i+1,
+				epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i],
+				elapsedTime[i]);
 	}
 
 	fclose(file);
@@ -381,6 +427,7 @@ void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* ser
 	delete[] tmpArr;
 	delete[] epoch_error;
 	delete[] max_epoch_error;
+	delete[] elapsedTime;
 }
 
 void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT, TrainConfig *config){
@@ -393,9 +440,11 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT*
 
 	float *epoch_error=new float[epoch_count];
 	float *max_epoch_error=new float[epoch_count];
+	double *elapsedTime = new double[epoch_count];
 
 
   for (int j = 0; j < epoch_count; j++){
+		double startTime = clock();
     for (int i = 0; i < pictures.getNumberOfSamples()/1; i++) {
 
       serialFLT->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
@@ -408,7 +457,12 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT*
 				max_epoch_error[j]=error;
 			}
 		}
+
+		double endTime = clock();
+		elapsedTime[j] = (double)(endTime-startTime)/CLOCKS_PER_SEC;
+
 		printf("+\n");
+		printf("Apmokymas uztruko: %.5f sec\n", elapsedTime[j]);
 		printf("Total error: %.10f\n", epoch_error[j]);
 		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 	}
@@ -419,7 +473,9 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT*
 	}
 
 	for(int i=0;i<epoch_count;i++){
-			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
+		fprintf(file, "%d\t%.10f\t%.10f\t%.10f\n",i+1,
+				epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i],
+				elapsedTime[i]);
 	}
 
 	fclose(file);
@@ -427,6 +483,62 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT*
 	delete[] tmpArr;
 	delete[] epoch_error;
 	delete[] max_epoch_error;
+	delete[] elapsedTime;
+}
+
+void PictureClassification::train_network(PictureDataFlt pictures, AnnCUDA* serialCUDA, TrainConfig *config){
+
+	float alpha = (float) config->getAlpha();
+	float eta = (float) config->getEta();
+	int epoch_count = config->getEpochCount();
+
+	float *tmpArr = new float[10];
+
+	float *epoch_error=new float[epoch_count];
+	float *max_epoch_error=new float[epoch_count];
+	double *elapsedTime = new double[epoch_count];
+
+  for (int j = 0; j < epoch_count; j++){
+		double startTime = clock();
+    for (int i = 0; i < pictures.getNumberOfSamples()/1; i++) {
+
+      serialCUDA->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
+
+			float error = serialCUDA->obtainError( pictures.getOutput(i));
+			// printf("%.10f\n", error);
+
+			epoch_error[j]+=error;
+
+			if(max_epoch_error[j]<error){
+				max_epoch_error[j]=error;
+			}
+		}
+		double endTime = clock();
+		elapsedTime[j] = (double)(endTime-startTime)/CLOCKS_PER_SEC;
+
+		printf("+\n");
+		printf("Apmokymas uztruko: %.5f sec\n", elapsedTime[j]);
+		printf("Total error: %.10f\n", epoch_error[j]);
+		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
+	}
+
+	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
+	if(file == NULL){
+		printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+	}
+
+	for(int i=0;i<epoch_count;i++){
+		fprintf(file, "%d\t%.10f\t%.10f\t%.10f\n",i+1,
+				epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i],
+				elapsedTime[i]);
+	}
+
+	fclose(file);
+
+	delete[] tmpArr;
+	delete[] epoch_error;
+	delete[] max_epoch_error;
+	delete[] elapsedTime;
 }
 
 void PictureClassification::Test(string Mnist_file,string MnistLabel_file, string file_load_network){
@@ -466,6 +578,25 @@ void PictureClassification::test_network(PictureDataFlt pictures, AnnSerialFLT* 
 	int test_samples=pictures.getNumberOfSamples();
 	for (int i = 0; i < test_samples; i++) {
 		serialFLT->feedForward(pictures.getInput(i), tmpArr);
+
+
+		if(pictures.getOutput(i)[PictureClassification::getMaxValue(tmpArr)]==1)
+			correct_outputs++;
+
+	}
+
+	printf("Tests done: %d\nCorrect outputs: %d\n", test_samples, correct_outputs);
+
+	delete[] tmpArr;
+}
+
+void PictureClassification::test_network(PictureDataFlt pictures, AnnCUDA* serialCUDA){
+	float *tmpArr = new float[10];
+
+	int correct_outputs = 0;
+	int test_samples=pictures.getNumberOfSamples();
+	for (int i = 0; i < test_samples; i++) {
+		serialCUDA->feedForward(pictures.getInput(i), tmpArr);
 
 
 		if(pictures.getOutput(i)[PictureClassification::getMaxValue(tmpArr)]==1)
@@ -706,9 +837,9 @@ int main (int c, char *v[]) {
 	// printf("\n\n\nFloat rezultatai: \n");
 	// xor_sample_Float();
   //
-   //run_cuda_sample();
+  //run_cuda_sample();
 
-//	pic_sample();
+	pic_sample();
 
  return 0;
 }

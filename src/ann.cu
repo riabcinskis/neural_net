@@ -89,6 +89,7 @@ namespace ann {
 		}
 
 		gjl[s[layer_id] + idx] = f_deriv*sum;
+		// printf("Kernelis %d - %.20f\n", s[layer_id] + idx, gjl[s[layer_id] + idx]);
 	}
 
 
@@ -114,10 +115,18 @@ namespace ann {
 		 int neuron_count_next = l[layer_id+1];
 
 		 if(idx >= neuron_count) return;
-
+		 //printf("layer_id:%d\n", layer_id);
 		 for(int k = 0; k < neuron_count_next-1; k++){
-			 float grad=a_arr[l[layer_id]+idx]*gjl[l[layer_id+1] + k];
-
+			 // float grad=a_arr[l[layer_id]+idx]*gjl[l[layer_id+1] + k];
+			 float grad=a_arr[s[layer_id] + idx]*gjl[s[layer_id + 1] + k];
+			 //printf("idx:%d k:%d l[layer_id]:%d l[layer_id + 1]:%d\n", idx, k, l[layer_id], l[layer_id + 1]);
+			 // printf("Gradientas: a[%d] * glj[%d]\n", l[layer_id]+idx, l[layer_id + 1] + k);
+			 // printf("Gradientas: a[%d] * glj[%d]\n", s[layer_id] + idx,
+			 // 			s[layer_id + 1] + k);
+			 // printf("%.20f * %.20f = Gradientas:%.20f\n",
+			 //   		a_arr[s[layer_id] + idx],
+				// 		gjl[s[layer_id + 1] + k],
+				// 		grad);
 			 dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k]=
 			 		-eta*grad+
 			 		alpha*dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k];
@@ -305,6 +314,13 @@ void AnnCUDA::train(float *a, float *b, float alpha, float eta){
 
 	calc_feedForward();
 
+	// for (int i = 0; i < 7; i++) {
+	// 	printf("a[%d] = %.10f\n", i, a_arr[i]);
+	// }
+	// printf("\n");
+	// for (int i = 0; i < 7; i++) {
+	// 	printf("z[%d] = %.10f\n", i, z_arr[i]);
+	// }
 
 	for (int i = 0; i < cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++) {
 		t_arr[i] = b[i];
@@ -335,6 +351,10 @@ void AnnCUDA::train(float *a, float *b, float alpha, float eta){
 		dim3 grid_dim(g, 1, 1);
 		dim3 block_dim(h, 1, 1);
 
+		// printf("%s\n", "A masyvas");
+		// for (int j = 0; j < 7; j++) {
+		// 	printf("a[%d] = %.20f\n", j, a_arr[j]);
+		// }
 
 		ann::kernel_weight_update<<<grid_dim, block_dim>>>(
 			i,
@@ -351,11 +371,11 @@ void AnnCUDA::train(float *a, float *b, float alpha, float eta){
 			alpha
 		);
 	}
-	for(int i=0;i<L;i++){
-		for(int k=0;k<l[i];k++){
-			printf("[%d] = %.10f\n", k,a_arr[l[i]+k]);
-		}
-	}
+	// for(int i=0;i<L;i++){
+	// 	for(int k=0;k<l[i];k++){
+	// 		printf("[%d] = %.10f\n", k,a_arr[l[i]+k]);
+	// 	}
+	// }
 	cudaError_t err = cudaGetLastError();
 	if (err != cudaSuccess)
 	    printf("Error: %s\n", cudaGetErrorString(err));
@@ -463,8 +483,8 @@ void AnnCUDA::calc_gjl(){
 		dv_gjl
 	);
 
-	for (int i = L - 2; i >= 0; i--) {
-
+	//Cia nezinau, ar i >= 0, ar i >= 1
+	for (int i = L - 2; i >= 1; i--) {
 			neuron_count = l[i];
 			h = 32; // number of threads in block
 			g = (neuron_count + (h-neuron_count%h))/h; // number of grids
@@ -485,6 +505,12 @@ void AnnCUDA::calc_gjl(){
 		}
 
 		checkCudaErrors( cudaMemcpy(gjl, dv_gjl, bc_gjl, cudaMemcpyDeviceToHost) );
+
+		// printf("%s\n", "gjl masyvas");
+		// for (int i = 0; i < 9; i++) {
+		// 	printf("%.20f\n", gjl[i]);
+		// }
+		// printf("%s\n", "----------------------------------------");
 }
 
 float AnnCUDA::delta_w(float grad, float dw, float alpha, float eta) {

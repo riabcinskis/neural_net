@@ -107,6 +107,9 @@ class PictureClassification{
 		static void test_network(PictureDataFlt pictures, AnnSerialFLT* serialFLT);
 		static int getMaxValue(float * a);
 
+		static void train_network(PictureDataFlt pictures, AnnCUDA* serialCUDA, TrainConfig *config);
+		static void test_network(PictureDataFlt pictures, AnnCUDA* serialCUDA);
+
 };
 
 #endif /* ANN_DEMO_HEADER */
