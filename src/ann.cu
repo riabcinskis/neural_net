@@ -57,7 +57,7 @@ namespace ann {
 
 		if(idx >= neuron_count-1) return;
 
-		float f_deriv=expf(-z_arr[s[layer_id] + idx]) / powf((1 + expf(-z_arr[s[layer_id] + idx])),2.0f);
+		float f_deriv=expf(-z_arr[s[layer_id] + idx]) / powf((1 + expf(-z_arr[s[layer_id] + idx])),2);
 		gjl[s[layer_id] + idx] = f_deriv*(a_arr[s[layer_id] + idx] - t_arr[idx]);
 	}
 
@@ -89,6 +89,42 @@ namespace ann {
 		}
 
 		gjl[s[layer_id] + idx] = f_deriv*sum;
+	}
+
+
+	__global__ void
+	kernel_weight_update(
+		int layer_id,
+		int *l,
+		int *s,
+		int *sw,
+		float *z_arr,
+		float *a_arr,
+		float *t_arr,
+		float *gjl,
+		float *w_arr,
+		float *dw_arr,
+		float eta,
+		float alpha
+	 ){
+
+		 volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+		 int neuron_count = l[layer_id];
+		 int neuron_count_next = l[layer_id+1];
+
+		 if(idx >= neuron_count) return;
+
+		 for(int k = 0; k < neuron_count_next-1; k++){
+			 float grad=a_arr[l[layer_id]+idx]*gjl[l[layer_id+1] + k];
+
+			 dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k]=
+			 		-eta*grad+
+			 		alpha*dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k];
+
+			 w_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k]+=
+			 		dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k];
+		 }
 	}
 
 }
@@ -277,14 +313,56 @@ void AnnCUDA::train(float *a, float *b, float alpha, float eta){
 	calc_gjl();
 
 	//back propogation:
-	for (int i = 0; i <L - 1; i++) {//per sluoksnius
-		for (int j = 0; j < l[i]; j++) {//per neuronus
-			for (int k = 0; k < l[i + 1] - 1; k++) {//per kito sluoksnio neuronus
-				dw_arr[sw[i] + k + j*(l[i + 1] - 1)] = delta_w(w_gradient(i, j, k), dw_arr[sw[i] + k + j*(l[i + 1] - 1)], alpha, eta);
-				w_arr[sw[i] + k + j*(l[i + 1] - 1)] += dw_arr[sw[i] + k + j*(l[i + 1] - 1)];
-			}
+	// for (int i = 0; i <L - 1; i++) {//per sluoksnius
+	// 	for (int j = 0; j < l[i]; j++) {//per neuronus
+	// 		for (int k = 0; k < l[i + 1] - 1; k++) {//per kito sluoksnio neuronus
+	// 			dw_arr[sw[i] + k + j*(l[i + 1] - 1)] = delta_w(w_gradient(i, j, k), dw_arr[sw[i] + k + j*(l[i + 1] - 1)], alpha, eta);
+	// 			w_arr[sw[i] + k + j*(l[i + 1] - 1)] += dw_arr[sw[i] + k + j*(l[i + 1] - 1)];
+	// 		}
+	// 	}
+	// }
+
+	checkCudaErrors( cudaMemcpy(dv_a_arr, a_arr, bc_a_arr, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_gjl, gjl, bc_gjl, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_dw_arr, dw_arr, bc_dw_arr, cudaMemcpyHostToDevice) );
+
+	for (int i = 0; i < L-1; i++) {//per sluoksnius einu+
+
+		int neuron_count = l[i];
+		int h = 32; // number of threads in block
+		int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
+		dim3 grid_dim(g, 1, 1);
+		dim3 block_dim(h, 1, 1);
+
+
+		ann::kernel_weight_update<<<grid_dim, block_dim>>>(
+			i,
+			dv_l,
+			dv_s,
+			dv_sw,
+			dv_z_arr,
+			dv_a_arr,
+			dv_t_arr,
+			dv_gjl,
+			dv_w_arr,
+			dv_dw_arr,
+			eta,
+			alpha
+		);
+	}
+	for(int i=0;i<L;i++){
+		for(int k=0;k<l[i];k++){
+			printf("[%d] = %.10f\n", k,a_arr[l[i]+k]);
 		}
 	}
+	cudaError_t err = cudaGetLastError();
+	if (err != cudaSuccess)
+	    printf("Error: %s\n", cudaGetErrorString(err));
+	checkCudaErrors( cudaMemcpy(w_arr, dv_w_arr, bc_w_arr, cudaMemcpyDeviceToHost) );
+	checkCudaErrors( cudaMemcpy(dw_arr, dv_dw_arr, bc_dw_arr, cudaMemcpyDeviceToHost) );
+
+
 }
 
 void AnnCUDA::feedForward(float *a, float *b){
