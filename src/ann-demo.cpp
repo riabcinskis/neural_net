@@ -87,6 +87,7 @@ void xor_sample(){
 	for (int i = 1; i < xo.getNumberOfSamples(); i++) {
 		SerialDBL->train(xo.getInput(i), xo.getOutput(i), alpha, eta);
 	}
+	SerialDBL->finishTraining();
 
 	//Checking results(all combinations 0 and 1)
 	double *target = new double[2];
@@ -134,6 +135,7 @@ void xor_sample_Float(){
 	for (int i = 1; i < xo.getNumberOfSamples(); i++) {
 		serialFlt->train(xo.getInput(i), xo.getOutput(i), alpha, eta);
 	}
+	serialFlt->finishTraining();
 
 	//Checking results(all combinations 0 and 1)
 	for (float i = 0; i < 2; i++) {
@@ -199,7 +201,7 @@ void pic_sample() {
 	config->setImpl(IMPL_FLOAT);
 	config->setErrorsFileName("avg_max_error_flt.txt");
 	config->setNetworkFileName("network_data_flt.bin");
-	config->setEpochCount(1);
+	config->setEpochCount(2);
 	config->setTopology(topology);
 	config->setEta(0.005);
 	config->setAlpha(0.8);
@@ -390,7 +392,9 @@ void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* ser
 
   for (int j = 0; j < epoch_count; j++){
 		double startTime = clock();
-    for (int i = 0; i < pictures.getNumberOfSamples()/1; i++) {
+		epoch_error[j] = 0;
+		max_epoch_error[j] = 0;
+    for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
 
       serialDBL->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
 
@@ -409,6 +413,7 @@ void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* ser
 		printf("Total error: %.10f\n", epoch_error[j]);
 		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 	}
+	serialDBL->finishTraining();
 
 
 	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
@@ -445,12 +450,13 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT*
 
   for (int j = 0; j < epoch_count; j++){
 		double startTime = clock();
-    for (int i = 0; i < pictures.getNumberOfSamples()/1; i++) {
+		epoch_error[j] = 0;
+		max_epoch_error[j] = 0;
+    for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
 
       serialFLT->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
 
 			float error = serialFLT->obtainError( pictures.getOutput(i));
-
 			epoch_error[j]+=error;
 
 			if(max_epoch_error[j]<error){
@@ -466,6 +472,7 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT*
 		printf("Total error: %.10f\n", epoch_error[j]);
 		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 	}
+	serialFLT->finishTraining();
 
 	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
 	if(file == NULL){
@@ -500,12 +507,13 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnCUDA* seri
 
   for (int j = 0; j < epoch_count; j++){
 		double startTime = clock();
-    for (int i = 0; i < pictures.getNumberOfSamples()/1; i++) {
+		epoch_error[j] = 0;
+		max_epoch_error[j] = 0;
+    for (int i = 0; i < 10 /*pictures.getNumberOfSamples()*/; i++) {
 
       serialCUDA->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
 
 			float error = serialCUDA->obtainError( pictures.getOutput(i));
-			// printf("%.10f\n", error);
 
 			epoch_error[j]+=error;
 
@@ -521,6 +529,7 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnCUDA* seri
 		printf("Total error: %.10f\n", epoch_error[j]);
 		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 	}
+	serialCUDA->finishTraining();
 
 	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
 	if(file == NULL){

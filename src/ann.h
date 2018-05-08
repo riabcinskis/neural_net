@@ -108,6 +108,7 @@ template <typename T>
 class AnnBase {
   public:
   	virtual void train(T *a, T *b, T alpha, T eta) = 0;
+    virtual void finishTraining() = 0;
   	virtual void feedForward(T *a, T *b) = 0;
   	virtual void destroy() = 0;
   	virtual T obtainError(T *b) = 0;
@@ -118,6 +119,7 @@ class AnnBase {
     virtual void prepare(Topology *top) = 0;
     virtual	void init(FILE *pFile)=0;
   	virtual void calc_feedForward() = 0;
+
 };
 
 class AnnSerialDBL : public AnnBase<double> {
@@ -137,6 +139,7 @@ class AnnSerialDBL : public AnnBase<double> {
   	double * gjl;
   public:
   	void train(double *a, double *b, double alpha, double eta);
+    void finishTraining();
   	void feedForward(double *a, double *b);
   	void destroy();
 
@@ -203,6 +206,7 @@ class AnnSerialFLT : public AnnBase<float> {
 
   public:
   	void train(float *a, float *b, float alpha, float eta);
+    void finishTraining();
   	void feedForward(float *a, float *b);
   	void destroy();
 
@@ -277,15 +281,14 @@ class AnnCUDA : public AnnBase<float> {
 
   public:
   	void train(float *a, float *b, float alpha, float eta);
+    void finishTraining();
   	void feedForward(float *a, float *b);
   	void destroy();
 
   	float obtainError(float *b);
   	void print_out();
 
-    void setWeights(float *t_w_arr){
-      w_arr=t_w_arr;
-    };
+    void setWeights(float *t_w_arr);
 
     AnnCUDA(Topology *top) {
       prepare(top);

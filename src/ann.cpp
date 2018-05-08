@@ -252,6 +252,10 @@ void AnnSerialDBL::train(double *a, double *b, double alpha, double eta){
 
 }
 
+void AnnSerialDBL::finishTraining(){
+
+}
+
 void AnnSerialDBL::feedForward(double *a, double *b){
 	for (int i = 0; i < cTopology->getLayerSize(0); i++) {
 		a_arr[i] = a[i];
@@ -506,6 +510,10 @@ void AnnSerialFLT::train(float *a, float *b, float alpha, float eta){
 	}
 }
 
+void AnnSerialFLT::finishTraining(){
+
+}
+
 void AnnSerialFLT::feedForward(float *a, float *b){
 	for (int i = 0; i < cTopology->getLayerSize(0); i++) {
 		a_arr[i] = a[i];
@@ -531,7 +539,7 @@ void AnnSerialFLT::calc_feedForward(){
 			}
 		}
 		for (int k = 0; k < l[i + 1] - 1; k++) {//per sekancio sluoksnio z
-			a_arr[s[i + 1] + k] = f(z_arr[s[i + 1] + k]);
+    	a_arr[s[i + 1] + k] = f(z_arr[s[i + 1] + k]);
 		}
 	}
 }
@@ -541,7 +549,7 @@ void AnnSerialFLT::calc_gjl(){
 		for (int j = 0; j < l[i]-1; j++) {
 			if (L - 1 == i) {
 				gjl[s[i] + j] = gL(a_arr[s[i] + j], z_arr[s[i] + j], t_arr[j]);
-			}
+    	}
 			else {
 				gjl[s[i] + j] = f_deriv(z_arr[s[i] + j]);
 				float sum = 0;
@@ -552,6 +560,8 @@ void AnnSerialFLT::calc_gjl(){
 			}
 		}
 	}
+
+
 }
 
 float AnnSerialFLT::delta_w(float grad, float dw, float alpha, float eta) {
@@ -581,7 +591,7 @@ float AnnSerialFLT::w_gradient(int layer_id, int w_i, int w_j) {
 float AnnSerialFLT::obtainError(float *b){
 	float error = 0;
 	for(int i = 0; i < l[L-1] - 1; i++){
-		float tmp = b[i] - a_arr[s[L-1] + i];
+  	float tmp = b[i] - a_arr[s[L-1] + i];
 		error += tmp*tmp;
 	}
 	return error;

@@ -32,8 +32,10 @@ namespace ann {
 
 
 		float z = 0;
-		for(int k = 0; k < neuron_count_prev; k++)
+		for(int k = 0; k < neuron_count_prev; k++){
 			z += w_arr[sw[layer_id-1] + k*(neuron_count - 1) + idx ]*a_arr[s[layer_id-1] + k];
+
+		}
 
 		z_arr[s[layer_id] + idx] = z;
 		float a = 1.0 / (1.0 + expf(-z));
@@ -57,7 +59,10 @@ namespace ann {
 
 		if(idx >= neuron_count-1) return;
 
-		float f_deriv=expf(-z_arr[s[layer_id] + idx]) / powf((1 + expf(-z_arr[s[layer_id] + idx])),2);
+		float z = z_arr[s[layer_id] + idx];
+		float tmp = 1 + expf(-z);
+		float f_deriv=expf(-z) / (tmp*tmp);
+
 		gjl[s[layer_id] + idx] = f_deriv*(a_arr[s[layer_id] + idx] - t_arr[idx]);
 	}
 
@@ -81,7 +86,11 @@ namespace ann {
 
 		if(idx >= neuron_count-1) return;
 
-		float f_deriv=expf(-z_arr[s[layer_id] + idx]) / powf((1 + expf(-z_arr[s[layer_id] + idx])),2.0f);
+		//float f_deriv=expf(-z_arr[s[layer_id] + idx]) / powf((1 + expf(-z_arr[s[layer_id] + idx])),2.0f);
+		float z = z_arr[s[layer_id] + idx];
+		float tmp = 1 + expf(-z);
+		float f_deriv=expf(-z) / (tmp*tmp);
+
 
 		float sum = 0;
 		for (int k = 0; k < neuron_count_next-1; k++) {
@@ -115,18 +124,12 @@ namespace ann {
 		 int neuron_count_next = l[layer_id+1];
 
 		 if(idx >= neuron_count) return;
-		 //printf("layer_id:%d\n", layer_id);
+
+		 float a = a_arr[s[layer_id] + idx];
 		 for(int k = 0; k < neuron_count_next-1; k++){
-			 // float grad=a_arr[l[layer_id]+idx]*gjl[l[layer_id+1] + k];
-			 float grad=a_arr[s[layer_id] + idx]*gjl[s[layer_id + 1] + k];
-			 //printf("idx:%d k:%d l[layer_id]:%d l[layer_id + 1]:%d\n", idx, k, l[layer_id], l[layer_id + 1]);
-			 // printf("Gradientas: a[%d] * glj[%d]\n", l[layer_id]+idx, l[layer_id + 1] + k);
-			 // printf("Gradientas: a[%d] * glj[%d]\n", s[layer_id] + idx,
-			 // 			s[layer_id + 1] + k);
-			 // printf("%.20f * %.20f = Gradientas:%.20f\n",
-			 //   		a_arr[s[layer_id] + idx],
-				// 		gjl[s[layer_id + 1] + k],
-				// 		grad);
+
+			 float grad=/*a_arr[s[layer_id] + idx]*/a*gjl[s[layer_id + 1] + k];
+
 			 dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k]=
 			 		-eta*grad+
 			 		alpha*dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k];
@@ -297,6 +300,8 @@ void AnnCUDA::init(FILE *pFile=NULL){
       dw_arr[sw[i] + j] = 0.0;
   }
 
+	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_dw_arr, dw_arr, bc_dw_arr, cudaMemcpyHostToDevice) );
 
 	checkCudaErrors( cudaMemcpy(dv_l, l, bc_l, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_s, s, bc_s, cudaMemcpyHostToDevice) );
@@ -328,7 +333,7 @@ void AnnCUDA::train(float *a, float *b, float alpha, float eta){
 
 	calc_gjl();
 
-	//back propogation:
+	// //back propogation:
 	// for (int i = 0; i <L - 1; i++) {//per sluoksnius
 	// 	for (int j = 0; j < l[i]; j++) {//per neuronus
 	// 		for (int k = 0; k < l[i + 1] - 1; k++) {//per kito sluoksnio neuronus
@@ -338,10 +343,10 @@ void AnnCUDA::train(float *a, float *b, float alpha, float eta){
 	// 	}
 	// }
 
-	checkCudaErrors( cudaMemcpy(dv_a_arr, a_arr, bc_a_arr, cudaMemcpyHostToDevice) );
-	checkCudaErrors( cudaMemcpy(dv_gjl, gjl, bc_gjl, cudaMemcpyHostToDevice) );
-	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
-	checkCudaErrors( cudaMemcpy(dv_dw_arr, dw_arr, bc_dw_arr, cudaMemcpyHostToDevice) );
+//	checkCudaErrors( cudaMemcpy(dv_a_arr, a_arr, bc_a_arr, cudaMemcpyHostToDevice) );
+	//checkCudaErrors( cudaMemcpy(dv_gjl, gjl, bc_gjl, cudaMemcpyHostToDevice) );
+	//checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
+
 
 	for (int i = 0; i < L-1; i++) {//per sluoksnius einu+
 
@@ -379,10 +384,16 @@ void AnnCUDA::train(float *a, float *b, float alpha, float eta){
 	cudaError_t err = cudaGetLastError();
 	if (err != cudaSuccess)
 	    printf("Error: %s\n", cudaGetErrorString(err));
+
+	//checkCudaErrors( cudaMemcpy(w_arr, dv_w_arr, bc_w_arr, cudaMemcpyDeviceToHost) );
+//	checkCudaErrors( cudaMemcpy(dw_arr, dv_dw_arr, bc_dw_arr, cudaMemcpyDeviceToHost) );
+
+	//checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
+}
+
+void AnnCUDA::finishTraining(){
 	checkCudaErrors( cudaMemcpy(w_arr, dv_w_arr, bc_w_arr, cudaMemcpyDeviceToHost) );
 	checkCudaErrors( cudaMemcpy(dw_arr, dv_dw_arr, bc_dw_arr, cudaMemcpyDeviceToHost) );
-
-
 }
 
 void AnnCUDA::feedForward(float *a, float *b){
@@ -397,16 +408,21 @@ void AnnCUDA::feedForward(float *a, float *b){
 
 	calc_feedForward();
 
+	checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
 
-	for (int i = 0; i<cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++)
+
+
+	for (int i = 0; i<cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++){
+		printf("a[%d] = %e\n", s[L - 1] + i, a_arr[s[L - 1] + i]);
 		b[i] = a_arr[s[L - 1] + i];
+	}
 }
 
 void AnnCUDA::calc_feedForward(){
 
-	checkCudaErrors( cudaMemcpy(dv_z_arr, z_arr, bc_z_arr, cudaMemcpyHostToDevice) );
+	//checkCudaErrors( cudaMemcpy(dv_z_arr, z_arr, bc_z_arr, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_a_arr, a_arr, bc_a_arr, cudaMemcpyHostToDevice) );
-	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
+	//checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
 
 
 
@@ -433,8 +449,7 @@ void AnnCUDA::calc_feedForward(){
 		// if (err != cudaSuccess)
 		//     printf("Error: %s\n", cudaGetErrorString(err));
 
-		checkCudaErrors( cudaMemcpy(z_arr, dv_z_arr, bc_z_arr, cudaMemcpyDeviceToHost) );
-		checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
+
 
 
 
@@ -448,6 +463,8 @@ void AnnCUDA::calc_feedForward(){
 		//
 
 	}
+	//checkCudaErrors( cudaMemcpy(z_arr, dv_z_arr, bc_z_arr, cudaMemcpyDeviceToHost) );
+	//checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
 	// for(int z=0;z<L;z++){
 	// 	for(int k=0;k<l[z];k++){
 	// 		printf("%.10f   %.10f\n", z_arr[s[z]+k],a_arr[s[z]+k]);
@@ -457,11 +474,11 @@ void AnnCUDA::calc_feedForward(){
 
 void AnnCUDA::calc_gjl(){
 
-	checkCudaErrors( cudaMemcpy(dv_a_arr, a_arr, bc_a_arr, cudaMemcpyHostToDevice) );
-	checkCudaErrors( cudaMemcpy(dv_z_arr, z_arr, bc_z_arr, cudaMemcpyHostToDevice) );
+	//checkCudaErrors( cudaMemcpy(dv_a_arr, a_arr, bc_a_arr, cudaMemcpyHostToDevice) );
+	//checkCudaErrors( cudaMemcpy(dv_z_arr, z_arr, bc_z_arr, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_t_arr, t_arr, bc_t_arr, cudaMemcpyHostToDevice) );
-	checkCudaErrors( cudaMemcpy(dv_gjl, gjl, bc_gjl, cudaMemcpyHostToDevice) );
-	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
+	//checkCudaErrors( cudaMemcpy(dv_gjl, gjl, bc_gjl, cudaMemcpyHostToDevice) );
+	//checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
 
 
 	// int last_layer_id=cTopology->getLayerCount()-1;
@@ -504,13 +521,8 @@ void AnnCUDA::calc_gjl(){
 			);
 		}
 
-		checkCudaErrors( cudaMemcpy(gjl, dv_gjl, bc_gjl, cudaMemcpyDeviceToHost) );
+//	checkCudaErrors( cudaMemcpy(gjl, dv_gjl, bc_gjl, cudaMemcpyDeviceToHost) );
 
-		// printf("%s\n", "gjl masyvas");
-		// for (int i = 0; i < 9; i++) {
-		// 	printf("%.20f\n", gjl[i]);
-		// }
-		// printf("%s\n", "----------------------------------------");
 }
 
 float AnnCUDA::delta_w(float grad, float dw, float alpha, float eta) {
@@ -538,6 +550,7 @@ float AnnCUDA::w_gradient(int layer_id, int w_i, int w_j) {
 }
 
 float AnnCUDA::obtainError(float *b){
+	checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
 	float error = 0;
 	for(int i = 0; i < l[L-1] - 1; i++){
 		float tmp = b[i] - a_arr[s[L-1] + i];
@@ -601,6 +614,11 @@ void AnnCUDA::print_out(){
 	for(int i = 0; i < l[L-2]; i++){
 		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
 	}
+}
+
+void AnnCUDA::setWeights(float *t_w_arr) {
+	w_arr=t_w_arr;
+	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
 }
 
 void AnnCUDA::printf_Network(string filename){

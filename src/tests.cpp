@@ -99,6 +99,7 @@ bool test_backward_Double(){
 
 
 	serialDBL->train(input, output, alpha, eta);
+  serialDBL->finishTraining();
 
   double *warr2 = serialDBL->getWeights();
   // for(int i = 0; i < 9; i++)
@@ -233,6 +234,8 @@ bool test_backwardFLT(){
 
 
 	serialFLT->train(input, output, alpha, eta);
+  serialFLT->finishTraining();
+
 
 
   float *warr2 = serialFLT->getWeights();
@@ -361,22 +364,25 @@ bool test_backwardCUDA(){
 
 
 	serialFLT->train(input, output, alpha, eta);
+  serialFLT->finishTraining();
 
 
   float *warr2 = serialFLT->getWeights();
   float *w = new float[9];
-  // for(int i = 0; i < 9; i++)
-  //   printf("w[%d] = %.20f\n", i, warr2[i]);
+  for(int i = 0; i < 9; i++)
+    printf("w[%d] = %.20f;\n", i, warr2[i]);
 
-     w[0] = 0.49771153926849365234;
-     w[1] = 0.19935533404350280762;
-     w[2] = -0.00457693310454487801;
-     w[3] = 0.09871067851781845093;
-     w[4] = 0.19771154224872589111;
-     w[5] = 0.69935530424118041992;
-     w[6] = 0.89233678579330444336;
-     w[7] = 0.29139557480812072754;
-     w[8] = 0.18853138387203216553;
+
+    w[0] = 0.49771153926849365234;
+    w[1] = 0.19935533404350280762;
+    w[2] = -0.00457693403586745262;
+    w[3] = 0.09871067851781845093;
+    w[4] = 0.19771154224872589111;
+    w[5] = 0.69935530424118041992;
+    w[6] = 0.89233678579330444336;
+    w[7] = 0.29139557480812072754;
+    w[8] = 0.18853138387203216553;
+
 
      // for(int i = 0; i < 9; i++){
      //   printf("%d\n", i);
@@ -421,7 +427,7 @@ bool test_backwardCUDA(){
   //             0.19935533771596700
   if(warr2[1] != 0.19935533404350280762) return false;
   //             -0.00457693395465348
-  if(warr2[2] != -0.00457693310454487801) return false;
+  if(warr2[2] != -0.00457693403586745262) return false;
   //             0.09871067543193330
   if(warr2[3] != 0.09871067851781845093) return false;
   //             0.19771153302267300
