@@ -413,7 +413,6 @@ void AnnCUDA::feedForward(float *a, float *b){
 
 
 	for (int i = 0; i<cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++){
-		printf("a[%d] = %e\n", s[L - 1] + i, a_arr[s[L - 1] + i]);
 		b[i] = a_arr[s[L - 1] + i];
 	}
 }
