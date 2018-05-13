@@ -56,6 +56,7 @@ class PictureDataFlt : public Data_Float{
 #define IMPL_DOUBLE 0
 #define IMPL_FLOAT 1
 #define IMPL_CUDA 2
+#define IMPL_CUDA2 3
 
 class TrainConfig{
 	private:
@@ -109,6 +110,9 @@ class PictureClassification{
 
 		static void train_network(PictureDataFlt pictures, AnnCUDA* serialCUDA, TrainConfig *config);
 		static void test_network(PictureDataFlt pictures, AnnCUDA* serialCUDA);
+
+		static void train_network(PictureDataFlt pictures, AnnCUDA2* serialCUDA2, TrainConfig *config);
+		static void test_network(PictureDataFlt pictures, AnnCUDA2* serialCUDA2);
 
 };
 

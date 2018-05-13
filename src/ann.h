@@ -45,6 +45,9 @@ class Topology {
 		int obtainNeuronCount();
 		int obtainWeightCount();
 
+    int obtainNeuronCount2();
+    int obtainWeightCount2();
+
 		int getInputNeuronCount();
 		int getOutputNeuronCount();
 
@@ -272,11 +275,75 @@ class AnnCUDA : public AnnBase<float> {
     float *dv_gjl; int bc_gjl;
 
 
+  public:
+  	void train(float *a, float *b, float alpha, float eta);
+    void finishTraining();
+  	void feedForward(float *a, float *b);
+  	void destroy();
+
+  	float obtainError(float *b);
+  	void print_out();
+
+    void setWeights(float *t_w_arr);
+
+    AnnCUDA(Topology *top) {
+      prepare(top);
+      init(NULL);
+    };
+
+  	float* getWeights();
+
+    void printf_Network(string filename);
 
 
+  private:
+    void prepare(Topology *top);
+    void init(FILE *pFile);
+
+  	void calc_feedForward();
+  	float delta_w(float grad, float dw, float alpha, float eta);
+  	float f(float x);
+  	float f_deriv(float x);
+  	float gL(float a, float z, float t);
+  	float w_gradient(int layer_id, int w_i, int w_j);
+  	void calc_gjl();
+};
 
 
+//*****************Cuda 2.0***************************
 
+class AnnCUDA2 : public AnnBase<float> {
+  private:
+  	Topology* cTopology;
+
+  	int L;
+  	int * l;
+    int * l_real;
+  	int * s;
+  	float * a_arr;
+  	float * z_arr;
+  	int * W;
+    int * W_real;
+  	int * sw;
+  	float * w_arr;
+  	float * dw_arr;
+  	float * t_arr;
+  	float * gjl;
+
+    int *dv_l; int bc_l;
+    int *dv_s; int bc_s;
+
+    float *dv_a_arr; int bc_a_arr;
+    float *dv_z_arr; int bc_z_arr;
+
+    int *dv_W; int bc_W;
+    int *dv_sw; int bc_sw;
+
+    float *dv_w_arr; int bc_w_arr;
+    float *dv_dw_arr; int bc_dw_arr;
+
+    float *dv_t_arr; int bc_t_arr;
+    float *dv_gjl; int bc_gjl;
 
 
   public:
@@ -290,7 +357,7 @@ class AnnCUDA : public AnnBase<float> {
 
     void setWeights(float *t_w_arr);
 
-    AnnCUDA(Topology *top) {
+    AnnCUDA2(Topology *top) {
       prepare(top);
       init(NULL);
     };

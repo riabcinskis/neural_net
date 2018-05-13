@@ -314,7 +314,7 @@ bool test_forwardCUDA(){
 
 	serialFLT->feedForward(input, output);
 
-//  printf("output = %.20f\n", output[0]);
+  //printf("output = %.20f\n", output[0]);
 
   //              0.7362264983
   //              0.73622649908065795898
@@ -420,6 +420,137 @@ bool test_backwardCUDA(){
     // if(warr2[7] != 0.30000001192092895508) return false;
     //             0.18853137822738400
     // if(warr2[8] != 0.20000000298023223877) return false;
+
+
+  //             0.49771153302267300
+  if(warr2[0] != 0.49771153926849365234) return false;
+  //             0.19935533771596700
+  if(warr2[1] != 0.19935533404350280762) return false;
+  //             -0.00457693395465348
+  if(warr2[2] != -0.00457693403586745262) return false;
+  //             0.09871067543193330
+  if(warr2[3] != 0.09871067851781845093) return false;
+  //             0.19771153302267300
+  if(warr2[4] != 0.19771154224872589111) return false;
+  //             0.69935533771596700
+  if(warr2[5] != 0.69935530424118041992) return false;
+  //             0.89233680716791600
+  if(warr2[6] != 0.89233678579330444336) return false;
+  //             0.29139555061784700
+  if(warr2[7] != 0.29139557480812072754) return false;
+  //             0.18853137822738400
+  if(warr2[8] != 0.18853138387203216553) return false;
+
+  delete [] warr;
+  delete [] input;
+  delete [] output;
+  delete serialFLT;
+  delete topology;
+}
+
+bool test_forwardCUDA2(){
+
+  Topology *topology = new Topology();
+  topology->addLayer(2);
+  topology->addLayer(2);
+  topology->addLayer(1);
+
+  AnnCUDA2  *serialCUDA= new AnnCUDA2(topology);
+
+  float *warr = new float[9];
+  int idx = 0;
+  warr[idx++] = 0.5;
+  warr[idx++] = 0.2;
+  warr[idx++] = 0.0;
+
+  warr[idx++] = 0.1;
+  warr[idx++] = 0.2;
+  warr[idx++] = 0.7;
+
+  warr[idx++] = 0.9;
+  warr[idx++] = 0.3;
+  warr[idx++] = 0.2;
+
+
+  serialCUDA->setWeights(warr);
+
+  float *input = new float[2];
+  input[0] = 1;
+  input[1] = 2;
+
+  float *output = new float[1];
+
+
+	serialCUDA->feedForward(input, output);
+
+  //printf("output = %.20f\n", output[0]);
+
+  //              0.7362264983
+  //              0.73622649908065795898
+  if(output[0] != 0.73622649908065795898) return false;
+
+
+  delete [] warr;
+  delete [] input;
+  delete [] output;
+  delete serialCUDA;
+  delete topology;
+}
+
+bool test_backwardCUDA2(){
+
+  Topology *topology = new Topology();
+  topology->addLayer(2);
+  topology->addLayer(2);
+  topology->addLayer(1);
+
+  AnnCUDA  *serialFLT = new AnnCUDA(topology);
+  float alpha = 0.7;
+  float eta = 0.25;
+
+  float *warr = new float[9];
+  int idx = 0;
+  warr[idx++] = 0.5;
+  warr[idx++] = 0.2;
+  warr[idx++] = 0.0;
+
+  warr[idx++] = 0.1;
+  warr[idx++] = 0.2;
+  warr[idx++] = 0.7;
+
+  warr[idx++] = 0.9;
+  warr[idx++] = 0.3;
+  warr[idx++] = 0.2;
+
+  serialFLT->setWeights(warr);
+
+  float *input = new float[2];
+  input[0] = 1;
+  input[1] = 2;
+
+  float *output = new float[1];
+  output[0] = 0.5;
+
+
+	serialFLT->train(input, output, alpha, eta);
+  serialFLT->finishTraining();
+
+
+  float *warr2 = serialFLT->getWeights();
+  float *w = new float[9];
+  // for(int i = 0; i < 9; i++)
+  //   printf("w[%d] = %.20f;\n", i, warr2[i]);
+
+
+    w[0] = 0.49771153926849365234;
+    w[1] = 0.19935533404350280762;
+    w[2] = -0.00457693403586745262;
+    w[3] = 0.09871067851781845093;
+    w[4] = 0.19771154224872589111;
+    w[5] = 0.69935530424118041992;
+    w[6] = 0.89233678579330444336;
+    w[7] = 0.29139557480812072754;
+    w[8] = 0.18853138387203216553;
 
 
   //             0.49771153302267300
@@ -562,12 +693,17 @@ bool run_tests(){
   passed = test_backwardFLT(); failCount += passed ? 0 : 1;
   printf("%s - test_backward_Float\n", passed ? "PASSED" : "FAILED");
 
-  passed = test_forwardCUDA(); failCount += passed ? 0 : 1;
-  printf("%s - test_forward_CUDA\n", passed ? "PASSED" : "FAILED");
-
-  passed = test_backwardCUDA(); failCount += passed ? 0 : 1;
-  printf("%s - test_backward_CUDA\n", passed ? "PASSED" : "FAILED");
-
+  // passed = test_forwardCUDA(); failCount += passed ? 0 : 1;
+  // printf("%s - test_forward_CUDA\n", passed ? "PASSED" : "FAILED");
+  //
+  // passed = test_backwardCUDA(); failCount += passed ? 0 : 1;
+  // printf("%s - test_backward_CUDA\n", passed ? "PASSED" : "FAILED");
+  //
+  // passed = test_forwardCUDA2(); failCount += passed ? 0 : 1;
+  // printf("%s - test_forward_CUDA2\n", passed ? "PASSED" : "FAILED");
+  //
+  // passed = test_backwardCUDA2(); failCount += passed ? 0 : 1;
+  // printf("%s - test_backward_CUDA2\n", passed ? "PASSED" : "FAILED");
 
   passed = test_Topology_From_File(); failCount += passed ? 0 : 1;
   printf("%s - test_Topology_From_File\n", passed ? "PASSED" : "FAILED");

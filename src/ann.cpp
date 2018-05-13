@@ -63,11 +63,33 @@ int Topology::obtainNeuronCount(){
 	return count;
 }
 
+int Topology::obtainNeuronCount2(){
+  int count = 0;
+  for (int i = 0; i < ml->size(); i++){
+    int layer_count = (*ml)[i] + 1;
+    count += layer_count;
+    if (layer_count % 32 != 0)
+      count += 32 - layer_count % 32;
+  }
+  return count;
+}
+
 int Topology::obtainWeightCount(){
 	int count = 0;
 	for (int i = 0; i < ml->size()-1; i++)
 		count += ((*ml)[i] + 1)*(*ml)[i+1];
 	return count;
+}
+
+int Topology::obtainWeightCount2(){
+  int count = 0;
+  for (int i = 0; i < ml -> size() - 1; i++){
+    int layer_count = ((*ml)[i] + 1)*(*ml)[i+1];
+    count += layer_count;
+    if (layer_count % 32 != 0)
+      count += 32 - layer_count % 32;
+  }
+  return count;
 }
 
 int Topology::getInputNeuronCount(){
@@ -267,8 +289,10 @@ void AnnSerialDBL::feedForward(double *a, double *b){
 
 	calc_feedForward();
 
-	for (int i = 0; i<cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++)
+	for (int i = 0; i<cTopology->getLayerSize(cTopology->getLayerCount() - 1); i++){
 		b[i] = a_arr[s[L - 1] + i];
+    //printf("b[%d] = %.10f\n", i, b[i]);
+  }
 }
 
 void AnnSerialDBL::calc_feedForward(){
@@ -290,7 +314,7 @@ void AnnSerialDBL::calc_feedForward(){
 }
 
 void AnnSerialDBL::calc_gjl(){
-	for (int i = L - 1; i >= 0; i--) {
+	for (int i = L - 1; i >= 1; i--) {
 		for (int j = 0; j < l[i]-1; j++) {
 			if (L - 1 == i) {
 				gjl[s[i] + j] = gL(a_arr[s[i] + j], z_arr[s[i] + j], t_arr[j]);
@@ -545,7 +569,7 @@ void AnnSerialFLT::calc_feedForward(){
 }
 
 void AnnSerialFLT::calc_gjl(){
-	for (int i = L - 1; i >= 0; i--) {
+	for (int i = L - 1; i >= 1; i--) {
 		for (int j = 0; j < l[i]-1; j++) {
 			if (L - 1 == i) {
 				gjl[s[i] + j] = gL(a_arr[s[i] + j], z_arr[s[i] + j], t_arr[j]);
