@@ -578,6 +578,7 @@ float* AnnCUDA::getWeights(){
 	return w_arr;
 }
 
+
 void AnnCUDA::print_out(){
   printf("z = %e\n", z_arr[s[L-1]+0]);
 	printf("g = %e\n", gjl[s[L-1]+0]);
@@ -805,7 +806,7 @@ void AnnCUDA2::finishTraining(){
 }
 
 void AnnCUDA2::feedForward(float *a, float *b){
-	for (int i = 0; i < l_real[0]; i++) {
+	for (int i = 0; i < cTopology->getLayerSize(0); i++) {
 		a_arr[i] = a[i];
 	}
 
@@ -831,7 +832,7 @@ void AnnCUDA2::calc_feedForward(){
 
 	for (int i = 1; i < L; i++) {//per sluoksnius einu+
 
-//	printf("current layer_id = %d\n", i);
+	printf("current layer_id = %d\n", i);
 		int neuron_count = l_real[i];
 		int h = 32; // number of threads in block
 	  int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
@@ -847,7 +848,6 @@ void AnnCUDA2::calc_feedForward(){
 			dv_a_arr,
 			dv_w_arr
 		);
-
 	}
 }
 
@@ -981,6 +981,10 @@ void AnnCUDA2::destroy(){
 
 float* AnnCUDA2::getWeights(){
 	return w_arr;
+}
+
+float* AnnCUDA2::getA(){
+	return a_arr;
 }
 
 void AnnCUDA2::print_out(){

@@ -39,7 +39,7 @@ set(CMAKE_CXX_FLAGS "-O3 -fopenmp --std=c++11")
 # -Xptxas -dlcm=ca # load granularity: 128 bytes, hits L1
 # -Xptxas -dlcm=cg # load granularity: 32 bytes, hits L2
 IF(CUDA_FOUND)	
-  LIST(APPEND CUDA_NVCC_FLAGS -lineinfo  -fmad=true -Xptxas -dlcm=ca  -gencode arch=compute_50,code=sm_50)
+  LIST(APPEND CUDA_NVCC_FLAGS -lineinfo  -fmad=true -Xptxas -dlcm=ca  -gencode arch=compute_30,code=sm_30)
   CUDA_ADD_LIBRARY(cudalib ${CUDA_SOURCES} SHARED )
   TARGET_LINK_LIBRARIES(cudalib ${CUDA_LIBRARIES} )
 ENDIF(CUDA_FOUND)

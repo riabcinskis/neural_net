@@ -363,6 +363,7 @@ class AnnCUDA2 : public AnnBase<float> {
     };
 
   	float* getWeights();
+    float* getA();
 
     void printf_Network(string filename);
 
