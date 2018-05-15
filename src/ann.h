@@ -316,7 +316,7 @@ class AnnCUDA2 : public AnnBase<float> {
   	int L;
   	int * l;
     int * l_ext;
-  	int * s;
+  	int * s_ext;
   	float * a_arr;
   	float * z_arr;
   	int * W;
@@ -330,7 +330,7 @@ class AnnCUDA2 : public AnnBase<float> {
   	float * gjl;
 
     int *dv_l; int bc_l;
-    int *dv_s; int bc_s;
+    int *dv_s_ext; int bc_s_ext;
 
     float *dv_a_arr; int bc_a_arr;
     float *dv_z_arr; int bc_z_arr;

@@ -620,8 +620,9 @@ void AnnCUDA2::prepare( Topology *top){
 	cTopology = top;
 
 	l = new int[top->getLayerCount()];
-	s = new int[top->getLayerCount()];
 	l_ext = new int[top->getLayerCount()];
+	s_ext = new int[top->getLayerCount()];
+
 
 	int neuronCount = cTopology->obtainNeuronCount();
 	int weightCount = cTopology->obtainWeightCount();
@@ -661,7 +662,7 @@ void AnnCUDA2::prepare( Topology *top){
 	checkCudaErrors( cudaSetDevice(0) );
 
 	dv_l = NULL; bc_l = sizeof(int)*top->getLayerCount();
-	dv_s = NULL; bc_s = sizeof(int)*top->getLayerCount();;
+	dv_s_ext = NULL; bc_s_ext = sizeof(int)*top->getLayerCount();;
 
 	dv_a_arr = NULL; bc_a_arr = sizeof(float)*neuronCount_ext;
 	dv_z_arr = NULL; bc_z_arr = sizeof(float)*neuronCount_ext;
@@ -676,7 +677,7 @@ void AnnCUDA2::prepare( Topology *top){
 	dv_gjl = NULL; bc_gjl = sizeof(float)*neuronCount_ext;
 
 	checkCudaErrors( cudaMalloc((void **)&dv_l, bc_l) );
-	checkCudaErrors( cudaMalloc((void **)&dv_s, bc_s) );
+	checkCudaErrors( cudaMalloc((void **)&dv_s_ext, bc_s_ext) );
 	checkCudaErrors( cudaMalloc((void **)&dv_a_arr, bc_a_arr) );
 	checkCudaErrors( cudaMalloc((void **)&dv_z_arr, bc_z_arr) );
 	checkCudaErrors( cudaMalloc((void **)&dv_W, bc_W) );
@@ -692,7 +693,6 @@ void AnnCUDA2::init(FILE *pFile=NULL){
   L = cTopology->getLayerCount();
 
 	Random *rnd = new Random();
-	int *temp_s = new int[L - 1];
 
 	//Neuronu kiekiai sluoksnyje
 	for (int i = 0; i < L; i++) {
@@ -703,19 +703,15 @@ void AnnCUDA2::init(FILE *pFile=NULL){
 
 	//Sluoksniu pradzios indeksai
 	for (int i = 0; i < L; i++) {
-		s[i] = 0;
+		s_ext[i] = 0;
 		for (int j = i; j > 0; j--) {
-			s[i] += l_ext[j - 1];
+			s_ext[i] += l_ext[j - 1];
 		}
-		if (i == 0)
-			temp_s[i] = l[i];
-		else
-			temp_s[i] = s[i] + l[i];
 	}
 
 	//Bias neuronai
 	for (int i = 0; i < L - 1; i++) {
-		a_arr[temp_s[i] - 1] = 1;
+		a_arr[s_ext[i] + l[i] - 1] = 1;
 	}
 
 	//Svoriu kiekiai l-ame sluoksnyje
@@ -747,13 +743,13 @@ void AnnCUDA2::init(FILE *pFile=NULL){
       dw_arr[sw[i] + j] = 0.0;
   }
 
-	delete[] temp_s;
+
 
 	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_dw_arr, dw_arr, bc_dw_arr, cudaMemcpyHostToDevice) );
 
 	checkCudaErrors( cudaMemcpy(dv_l, l, bc_l, cudaMemcpyHostToDevice) );
-	checkCudaErrors( cudaMemcpy(dv_s, s, bc_s, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_s_ext, s_ext, bc_s_ext, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_sw, sw, bc_sw, cudaMemcpyHostToDevice) );
 }
 
@@ -785,7 +781,7 @@ void AnnCUDA2::train(float *a, float *b, float alpha, float eta){
 		ann::kernel_weight_update<<<grid_dim, block_dim>>>(
 			i,
 			dv_l,
-			dv_s,
+			dv_s_ext,
 			dv_sw,
 			dv_z_arr,
 			dv_a_arr,
@@ -823,7 +819,7 @@ void AnnCUDA2::feedForward(float *a, float *b){
 	checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
 
 	for (int i = 0; i < l[L - 1]; i++){
-		b[i] = a_arr[s[L - 1] + i];
+		b[i] = a_arr[s_ext[L - 1] + i];
 		//printf("b[%d] = %.10f\n", i, b[i]);
 	}
 }
@@ -846,7 +842,7 @@ void AnnCUDA2::calc_feedForward(){
 		ann::kernel_feedforward<<<grid_dim, block_dim>>>(
 			i,
 			dv_l,
-			dv_s,
+			dv_s_ext,
 			dv_sw,
 			dv_z_arr,
 			dv_a_arr,
@@ -872,7 +868,7 @@ void AnnCUDA2::calc_gjl(){
 	ann::kernel_calc_gL<<<grid_dim, block_dim>>>(
 		last_layer_id,
 		dv_l,
-		dv_s,
+		dv_s_ext,
 		dv_z_arr,
 		dv_a_arr,
 		dv_t_arr,
@@ -890,7 +886,7 @@ void AnnCUDA2::calc_gjl(){
 			ann::kernel_calc_gjL<<<grid_dim, block_dim>>>(
 				i,
 				dv_l,
-				dv_s,
+				dv_s_ext,
 				dv_sw,
 				dv_z_arr,
 				dv_a_arr,
@@ -925,14 +921,14 @@ float AnnCUDA2::f_deriv(float x) {
 }
 
 float AnnCUDA2::w_gradient(int layer_id, int w_i, int w_j) {
-	return a_arr[s[layer_id] + w_i] * gjl[s[layer_id + 1] + w_j];
+	return a_arr[s_ext[layer_id] + w_i] * gjl[s_ext[layer_id + 1] + w_j];
 }
 
 float AnnCUDA2::obtainError(float *b){
 	checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
 	float error = 0;
 	for(int i = 0; i < l[L-1] - 1; i++){
-		float tmp = b[i] - a_arr[s[L-1] + i];
+		float tmp = b[i] - a_arr[s_ext[L-1] + i];
 		error += tmp*tmp;
 		//printf("a_arr[%d] = %.10f\n", s[L-1] + i, a_arr[s[L-1] + i]);
 	}
@@ -947,8 +943,8 @@ void AnnCUDA2::destroy(){
 	l_ext = NULL;
 
 
-	delete[] s;
-	s = NULL;
+	delete[] s_ext;
+	s_ext = NULL;
 
 	delete[] a_arr;
 	a_arr = NULL;
@@ -974,7 +970,7 @@ void AnnCUDA2::destroy(){
 
 
 	checkCudaErrors( cudaFree(dv_l) );
-	checkCudaErrors( cudaFree(dv_s) );
+	checkCudaErrors( cudaFree(dv_s_ext) );
 	checkCudaErrors( cudaFree(dv_a_arr) );
 	checkCudaErrors( cudaFree(dv_z_arr) );
 	checkCudaErrors( cudaFree(dv_W) );
@@ -997,11 +993,11 @@ float* AnnCUDA2::getA(){
 }
 
 void AnnCUDA2::print_out(){
-  printf("z = %e\n", z_arr[s[L-1]+0]);
-	printf("g = %e\n", gjl[s[L-1]+0]);
+  printf("z = %e\n", z_arr[s_ext[L-1]+0]);
+	printf("g = %e\n", gjl[s_ext[L-1]+0]);
 
 	for(int i = 0; i < l[L-2]; i++){
-		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s[L-2]+i], a_arr[s[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s[L-2]+i]*gjl[s[L-1]+0]);
+		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n", i, z_arr[s_ext[L-2]+i], a_arr[s_ext[L-2]+i], w_arr[sw[L-2] + i*(l[L-1]-1)], a_arr[s_ext[L-2]+i]*gjl[s_ext[L-1]+0]);
 	}
 }
 
