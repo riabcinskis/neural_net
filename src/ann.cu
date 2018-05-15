@@ -148,6 +148,143 @@ namespace ann {
 		 }
 	}
 
+	// CUDA2
+	__global__ void
+	kernel_feedforward_2(
+		int layer_id,
+		int *l,
+		int *s_ext,
+		int *sw,
+		float *z_arr,
+		float *a_arr,
+		float *w_arr
+	 ){
+		volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+		int neuron_count = l[layer_id];
+		int neuron_count_prev = l[layer_id-1];
+
+		//printf("layer = %d idx = %d count = %d\n", layer_id, idx, neuron_count-1);
+		if(idx >= neuron_count-1) return;
+
+		float z = 0;
+		for(int k = 0; k < neuron_count_prev; k++){
+			z += w_arr[sw[layer_id-1] + k*(neuron_count - 1) + idx]*a_arr[s_ext[layer_id-1] + k];
+			// printf("w_arr[%d] * a_arr[%d] = %.20f\n",
+			// 		sw[layer_id-1] + k*(neuron_count - 1) + idx ,
+			// 		s[layer_id-1] + k,
+			// 		w_arr[sw[layer_id-1] + k*(neuron_count - 1) + idx]*a_arr[s[layer_id-1] + k]);
+			// printf("%.10f * %.10f = %.10f\n", w_arr[sw[layer_id-1] + k*(neuron_count - 1) + idx ],
+			// 		a_arr[s[layer_id-1] + k],
+			// 		w_arr[sw[layer_id-1] + k*(neuron_count - 1) + idx]*a_arr[s[layer_id-1] + k]
+			// 	);
+
+		}
+
+		z_arr[s_ext[layer_id] + idx] = z;
+		float a = 1.0 / (1.0 + expf(-z));
+		a_arr[s_ext[layer_id] + idx] = a;
+		// printf("index = %d z = %.5f\n", s[layer_id] + idx, z);
+		// printf("a = %.20f\n", a);
+	}
+
+	__global__ void
+	kernel_calc_gL_2(
+		int layer_id,
+		int *l,
+		int *s_ext,
+		float *z_arr,
+		float *a_arr,
+		float *t_arr,
+		float *gjl
+	 ){
+
+		volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+		int neuron_count = l[layer_id];
+
+		if(idx >= neuron_count-1) return;
+
+		float z = z_arr[s_ext[layer_id] + idx];
+		float tmp = 1 + expf(-z);
+		float f_deriv=expf(-z) / (tmp*tmp);
+
+		gjl[s_ext[layer_id] + idx] = f_deriv*(a_arr[s_ext[layer_id] + idx] - t_arr[idx]);
+	}
+
+	__global__ void
+	kernel_calc_gjL_2(
+		int layer_id,
+		int *l,
+		int *s_ext,
+		int *sw,
+		float *z_arr,
+		float *a_arr,
+		float *t_arr,
+		float *gjl,
+		float *w_arr
+	 ){
+
+		volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+		int neuron_count = l[layer_id];
+		int neuron_count_next = l[layer_id+1];
+
+		if(idx >= neuron_count-1) return;
+
+		//float f_deriv=expf(-z_arr[s[layer_id] + idx]) / powf((1 + expf(-z_arr[s[layer_id] + idx])),2.0f);
+		float z = z_arr[s_ext[layer_id] + idx];
+		float tmp = 1 + expf(-z);
+		float f_deriv=expf(-z) / (tmp*tmp);
+
+
+		float sum = 0;
+		for (int k = 0; k < neuron_count_next-1; k++) {
+				sum += w_arr[sw[layer_id] + idx*(l[layer_id + 1] - 1) + k] * gjl[s_ext[layer_id + 1] + k];
+		}
+
+		gjl[s_ext[layer_id] + idx] = f_deriv*sum;
+		// printf("Kernelis %d - %.20f\n", s[layer_id] + idx, gjl[s[layer_id] + idx]);
+	}
+
+
+	__global__ void
+	kernel_weight_update_2(
+		int layer_id,
+		int *l,
+		int *s_ext,
+		int *sw,
+		float *z_arr,
+		float *a_arr,
+		float *t_arr,
+		float *gjl,
+		float *w_arr,
+		float *dw_arr,
+		float eta,
+		float alpha
+	 ){
+
+		 volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+		 int neuron_count = l[layer_id];
+		 int neuron_count_next = l[layer_id+1];
+
+		 if(idx >= neuron_count) return;
+
+		 float a = a_arr[s_ext[layer_id] + idx];
+		 for(int k = 0; k < neuron_count_next-1; k++){
+
+			 float grad=/*a_arr[s[layer_id] + idx]*/a*gjl[s_ext[layer_id + 1] + k];
+
+			 dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k]=
+					-eta*grad+
+					alpha*dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k];
+
+			 w_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k]+=
+					dw_arr[sw[layer_id] + idx*(neuron_count_next - 1) + k];
+		 }
+	}
+
 }
 
 void run_cuda_sample(){
@@ -778,7 +915,7 @@ void AnnCUDA2::train(float *a, float *b, float alpha, float eta){
 		dim3 grid_dim(g, 1, 1);
 		dim3 block_dim(h, 1, 1);
 
-		ann::kernel_weight_update<<<grid_dim, block_dim>>>(
+		ann::kernel_weight_update_2<<<grid_dim, block_dim>>>(
 			i,
 			dv_l,
 			dv_s_ext,
@@ -839,7 +976,7 @@ void AnnCUDA2::calc_feedForward(){
 		dim3 grid_dim(g, 1, 1);
 		dim3 block_dim(h, 1, 1);
 
-		ann::kernel_feedforward<<<grid_dim, block_dim>>>(
+		ann::kernel_feedforward_2<<<grid_dim, block_dim>>>(
 			i,
 			dv_l,
 			dv_s_ext,
@@ -865,7 +1002,7 @@ void AnnCUDA2::calc_gjl(){
 	dim3 block_dim(h, 1, 1);
 
 
-	ann::kernel_calc_gL<<<grid_dim, block_dim>>>(
+	ann::kernel_calc_gL_2<<<grid_dim, block_dim>>>(
 		last_layer_id,
 		dv_l,
 		dv_s_ext,
