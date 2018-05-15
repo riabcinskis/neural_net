@@ -325,6 +325,8 @@ class AnnCUDA2 : public AnnBase<float> {
   	int * W;
     int * W_real;
   	int * sw;
+    int * sw_real;
+
   	float * w_arr;
   	float * dw_arr;
   	float * t_arr;

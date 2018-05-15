@@ -640,6 +640,7 @@ void AnnCUDA2::prepare( Topology *top){
 	W = new int[top->getLayerCount()];
 	W_real = new int[top->getLayerCount()];
 	sw = new int[top->getLayerCount()];
+	sw_real = new int[top->getLayerCount()];
 
 	w_arr = new float[weightCount2];
 	dw_arr = new float[weightCount2];
@@ -725,9 +726,12 @@ void AnnCUDA2::init(FILE *pFile=NULL){
 			W[i] += (32 - W[i] % 32);
 		}
 		sw[i] = 0;
+		sw_real[i] = 0;
 		if (i != 0) {
 			for (int j = 0; j < i; j++) {
 				sw[i] += W[j];
+				sw_real[i] += W_real[j];
+
 			}
 		}
   }
@@ -832,7 +836,7 @@ void AnnCUDA2::calc_feedForward(){
 
 	for (int i = 1; i < L; i++) {//per sluoksnius einu+
 
-	printf("current layer_id = %d\n", i);
+	//printf("current layer_id = %d\n", i);
 		int neuron_count = l_real[i];
 		int h = 32; // number of threads in block
 	  int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
@@ -1021,10 +1025,11 @@ void AnnCUDA2::printf_Network(string filename){
 
   double *w_arr_dbl = new double[weightCount];
   double *dw_arr_dbl = new double[weightCount];
-  for(int i = 0; i < weightCount; i++){
-    w_arr_dbl[i] = (double)w_arr[i];
-    dw_arr_dbl[i] = (double)dw_arr[i];
-  }
+	for(int layer_id = 0; layer_id < L - 1; layer_id++)
+		for(int k = 0; k < l_real[layer_id]*(l_real[layer_id+1]-1); k++){
+			w_arr_dbl[sw_real[layer_id]+k] = (double)w_arr[sw[layer_id]+k];
+			dw_arr_dbl[sw_real[layer_id]+k] = (double)dw_arr[sw[layer_id]+k];
+  	}
 
   fwrite (w_arr_dbl , sizeof(double), weightCount, pFile);
   fwrite (dw_arr_dbl , sizeof(double), weightCount, pFile);

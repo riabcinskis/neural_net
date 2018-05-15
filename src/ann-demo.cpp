@@ -676,7 +676,7 @@ void PictureClassification::Test(string Mnist_file,string MnistLabel_file, strin
 	delete test_serialDBL;
 }
 
-void PictureClassification::test_network(PictureData pictures,AnnSerialDBL* serialDBL){
+void PictureClassification::test_network(PictureData pictures, AnnSerialDBL* serialDBL){
 	double *tmpArr = new double[10];
 
 	int correct_outputs=0;
