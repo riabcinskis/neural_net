@@ -157,7 +157,7 @@ namespace ann {
 		int *sw_ext,
 		float *z_ext_arr,
 		float *a_ext_arr,
-		float *w_arr
+		float *w_ext_arr
 	 ){
 		volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
 
@@ -169,7 +169,7 @@ namespace ann {
 
 		float z = 0;
 		for(int k = 0; k < neuron_count_prev; k++){
-			z += w_arr[sw_ext[layer_id-1] + k*(neuron_count - 1) + idx]*a_ext_arr[s_ext[layer_id-1] + k];
+			z += w_ext_arr[sw_ext[layer_id-1] + k*(neuron_count - 1) + idx]*a_ext_arr[s_ext[layer_id-1] + k];
 			// printf("w_arr[%d] * a_arr[%d] = %.20f\n",
 			// 		sw[layer_id-1] + k*(neuron_count - 1) + idx ,
 			// 		s[layer_id-1] + k,
@@ -222,7 +222,7 @@ namespace ann {
 		float *a_ext_arr,
 		float *t_arr,
 		float *gjl_ext,
-		float *w_arr
+		float *w_ext_arr
 	 ){
 
 		volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
@@ -240,7 +240,7 @@ namespace ann {
 
 		float sum = 0;
 		for (int k = 0; k < neuron_count_next-1; k++) {
-				sum += w_arr[sw_ext[layer_id] + idx*(l[layer_id + 1] - 1) + k] * gjl_ext[s_ext[layer_id + 1] + k];
+				sum += w_ext_arr[sw_ext[layer_id] + idx*(l[layer_id + 1] - 1) + k] * gjl_ext[s_ext[layer_id + 1] + k];
 		}
 
 		gjl_ext[s_ext[layer_id] + idx] = f_deriv*sum;
@@ -258,8 +258,8 @@ namespace ann {
 		float *a_ext_arr,
 		float *t_arr,
 		float *gjl_ext,
-		float *w_arr,
-		float *dw_arr,
+		float *w_ext_arr,
+		float *dw_ext_arr,
 		float eta,
 		float alpha
 	 ){
@@ -276,12 +276,12 @@ namespace ann {
 
 			 float grad=/*a_arr[s[layer_id] + idx]*/a*gjl_ext[s_ext[layer_id + 1] + k];
 
-			 dw_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k]=
+			 dw_ext_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k]=
 					-eta*grad+
-					alpha*dw_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k];
+					alpha*dw_ext_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k];
 
-			 w_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k]+=
-					dw_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k];
+			 w_ext_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k]+=
+					dw_ext_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k];
 		 }
 	}
 
@@ -779,8 +779,8 @@ void AnnCUDA2::prepare( Topology *top){
 	sw_ext = new int[top->getLayerCount()];
 
 
-	w_arr = new float[weightCount_ext];
-	dw_arr = new float[weightCount_ext];
+	w_ext_arr = new float[weightCount_ext];
+	dw_ext_arr = new float[weightCount_ext];
 
 	t_arr = new float[top->getLayerSize(top->getLayerCount() - 1)];
 
@@ -805,8 +805,8 @@ void AnnCUDA2::prepare( Topology *top){
 
 	dv_sw_ext = NULL; bc_sw_ext = sizeof(int)*top->getLayerCount();
 
-	dv_w_arr = NULL; bc_w_arr = sizeof(float)*weightCount_ext;
-	dv_dw_arr = NULL; bc_dw_arr = sizeof(float)*weightCount_ext;
+	dv_w_ext_arr = NULL; bc_w_ext_arr = sizeof(float)*weightCount_ext;
+	dv_dw_ext_arr = NULL; bc_dw_ext_arr = sizeof(float)*weightCount_ext;
 
 	dv_t_arr = NULL; bc_t_arr = sizeof(float)*top->getLayerSize(top->getLayerCount() - 1);
 	dv_gjl_ext = NULL; bc_gjl_ext = sizeof(float)*neuronCount_ext;
@@ -816,8 +816,8 @@ void AnnCUDA2::prepare( Topology *top){
 	checkCudaErrors( cudaMalloc((void **)&dv_a_ext_arr, bc_a_ext_arr) );
 	checkCudaErrors( cudaMalloc((void **)&dv_z_ext_arr, bc_z_ext_arr) );
 	checkCudaErrors( cudaMalloc((void **)&dv_sw_ext, bc_sw_ext) );
-	checkCudaErrors( cudaMalloc((void **)&dv_w_arr, bc_w_arr) );
-	checkCudaErrors( cudaMalloc((void **)&dv_dw_arr, bc_dw_arr) );
+	checkCudaErrors( cudaMalloc((void **)&dv_w_ext_arr, bc_w_ext_arr) );
+	checkCudaErrors( cudaMalloc((void **)&dv_dw_ext_arr, bc_dw_ext_arr) );
 	checkCudaErrors( cudaMalloc((void **)&dv_t_arr, bc_t_arr) );
 	checkCudaErrors( cudaMalloc((void **)&dv_gjl_ext, bc_gjl_ext) );
 
@@ -872,19 +872,19 @@ void AnnCUDA2::init(FILE *pFile=NULL){
   for (int i = 0; i < L - 1; i++)
     for (int j = 0; j < W_ext[i]; j++) {
 			if (j < W[i]){
-      	w_arr[sw_ext[i] + j] =(rnd->next()*2-1);
+      	w_ext_arr[sw_ext[i] + j] =(rnd->next()*2-1);
 			}
 			else{
-				w_arr[sw_ext[i] + j] = 0.0;
+				w_ext_arr[sw_ext[i] + j] = 0.0;
 			}
-      dw_arr[sw_ext[i] + j] = 0.0;
+      dw_ext_arr[sw_ext[i] + j] = 0.0;
   }
 
 	delete [] W;
 	delete [] W_ext;
 
-	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
-	checkCudaErrors( cudaMemcpy(dv_dw_arr, dw_arr, bc_dw_arr, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_w_ext_arr, w_ext_arr, bc_w_ext_arr, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_dw_ext_arr, dw_ext_arr, bc_dw_ext_arr, cudaMemcpyHostToDevice) );
 
 	checkCudaErrors( cudaMemcpy(dv_l, l, bc_l, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_s_ext, s_ext, bc_s_ext, cudaMemcpyHostToDevice) );
@@ -925,8 +925,8 @@ void AnnCUDA2::train(float *a, float *b, float alpha, float eta){
 			dv_a_ext_arr,
 			dv_t_arr,
 			dv_gjl_ext,
-			dv_w_arr,
-			dv_dw_arr,
+			dv_w_ext_arr,
+			dv_dw_ext_arr,
 			eta,
 			alpha
 		);
@@ -939,8 +939,8 @@ void AnnCUDA2::train(float *a, float *b, float alpha, float eta){
 }
 
 void AnnCUDA2::finishTraining(){
-	checkCudaErrors( cudaMemcpy(w_arr, dv_w_arr, bc_w_arr, cudaMemcpyDeviceToHost) );
-	checkCudaErrors( cudaMemcpy(dw_arr, dv_dw_arr, bc_dw_arr, cudaMemcpyDeviceToHost) );
+	checkCudaErrors( cudaMemcpy(w_ext_arr, dv_w_ext_arr, bc_w_ext_arr, cudaMemcpyDeviceToHost) );
+	checkCudaErrors( cudaMemcpy(dw_ext_arr, dv_dw_ext_arr, bc_dw_ext_arr, cudaMemcpyDeviceToHost) );
 }
 
 void AnnCUDA2::feedForward(float *a, float *b){
@@ -984,7 +984,7 @@ void AnnCUDA2::calc_feedForward(){
 			dv_sw_ext,
 			dv_z_ext_arr,
 			dv_a_ext_arr,
-			dv_w_arr
+			dv_w_ext_arr
 		);
 	}
 }
@@ -1030,7 +1030,7 @@ void AnnCUDA2::calc_gjl(){
 				dv_a_ext_arr,
 				dv_t_arr,
 				dv_gjl_ext,
-				dv_w_arr
+				dv_w_ext_arr
 			);
 		}
 
@@ -1068,10 +1068,10 @@ void AnnCUDA2::destroy(){
 	delete[] sw_ext;
 	sw_ext = NULL;
 
-	delete[] w_arr;
-	w_arr = NULL;
-	delete[] dw_arr;
-	dw_arr = NULL;
+	delete[] w_ext_arr;
+	w_ext_arr = NULL;
+	delete[] dw_ext_arr;
+	dw_ext_arr = NULL;
 
 	delete[] t_arr;
 	t_arr = NULL;
@@ -1086,8 +1086,8 @@ void AnnCUDA2::destroy(){
 	checkCudaErrors( cudaFree(dv_a_ext_arr) );
 	checkCudaErrors( cudaFree(dv_z_ext_arr) );
 	checkCudaErrors( cudaFree(dv_sw_ext) );
-	checkCudaErrors( cudaFree(dv_w_arr) );
-	checkCudaErrors( cudaFree(dv_dw_arr) );
+	checkCudaErrors( cudaFree(dv_w_ext_arr) );
+	checkCudaErrors( cudaFree(dv_dw_ext_arr) );
 	checkCudaErrors( cudaFree(dv_t_arr) );
 	checkCudaErrors( cudaFree(dv_gjl_ext) );
 
@@ -1096,7 +1096,7 @@ void AnnCUDA2::destroy(){
 }
 
 float* AnnCUDA2::getWeights(){
-	return w_arr;
+	return w_ext_arr;
 }
 
 float* AnnCUDA2::getA(){
@@ -1111,7 +1111,7 @@ void AnnCUDA2::print_out(){
 		if(i < l[L-2]) printf("[%d] z=%e, a=%e, w=%e, grad = %e\n",
 		 	i, z_ext_arr[s_ext[L-2]+i],
 			a_ext_arr[s_ext[L-2]+i],
-		  w_arr[sw_ext[L-2] + i*(l[L-1]-1)],
+		  w_ext_arr[sw_ext[L-2] + i*(l[L-1]-1)],
 			a_ext_arr[s_ext[L-2]+i]*gjl_ext[s_ext[L-1]+0]);
 	}
 }
@@ -1123,13 +1123,13 @@ void AnnCUDA2::setWeights(float *t_w_arr) {
 		for (int j = 0; j < l[i]*(l[i+1]-1); j++) {
 			int index_w = sw_ext[i] + j;
 			int index_t = prev_count + j;
-			w_arr[index_w] = t_w_arr[index_t];
+			w_ext_arr[index_w] = t_w_arr[index_t];
 		}
 		prev_count += l[i]*(l[i+1]-1);
 
 	}
 
-	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_w_ext_arr, w_ext_arr, bc_w_ext_arr, cudaMemcpyHostToDevice) );
 }
 
 void AnnCUDA2::printf_Network(string filename){
@@ -1146,8 +1146,8 @@ void AnnCUDA2::printf_Network(string filename){
 	for(int layer_id = 0; layer_id < L - 1; layer_id++){
 
 		for(int k = 0; k < l[layer_id]*(l[layer_id+1]-1); k++){
-			w_arr_dbl[sw_index+k] = (double)w_arr[sw_ext[layer_id]+k];
-			dw_arr_dbl[sw_index+k] = (double)dw_arr[sw_ext[layer_id]+k];
+			w_arr_dbl[sw_index+k] = (double)w_ext_arr[sw_ext[layer_id]+k];
+			dw_arr_dbl[sw_index+k] = (double)dw_ext_arr[sw_ext[layer_id]+k];
 
 		}
 		sw_index +=  l[layer_id]*(l[layer_id+1]-1);

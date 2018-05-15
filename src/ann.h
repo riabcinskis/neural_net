@@ -321,8 +321,8 @@ class AnnCUDA2 : public AnnBase<float> {
   	float * z_ext_arr;
   	int * sw_ext;
 
-  	float * w_arr;
-  	float * dw_arr;
+  	float * w_ext_arr;
+  	float * dw_ext_arr;
   	float * t_arr;
   	float * gjl_ext;
 
@@ -335,8 +335,8 @@ class AnnCUDA2 : public AnnBase<float> {
 
     int *dv_sw_ext; int bc_sw_ext;
 
-    float *dv_w_arr; int bc_w_arr;
-    float *dv_dw_arr; int bc_dw_arr;
+    float *dv_w_ext_arr; int bc_w_ext_arr;
+    float *dv_dw_ext_arr; int bc_dw_ext_arr;
 
     float *dv_t_arr; int bc_t_arr;
     float *dv_gjl_ext; int bc_gjl_ext;
