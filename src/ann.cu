@@ -159,7 +159,17 @@ namespace ann {
 		float *a_ext_arr,
 		float *w_ext_arr
 	 ){
-		volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+		 extern __shared__ int sm[];
+		 float *sm_z = (float*)&sm[0];
+
+		 int h = blockDim.x;
+		 int h2 = blockDim.y;
+
+
+		 int lidx = threadIdx.x;
+		 int pidx = threadIdx.y;
+		int idx = threadIdx.x + blockDim.x*blockIdx.x;
 
 		int neuron_count = l[layer_id];
 		int neuron_count_prev = l[layer_id-1];
@@ -168,22 +178,26 @@ namespace ann {
 		if(idx >= neuron_count-1) return;
 
 		float z = 0;
-		for(int k = 0; k < neuron_count_prev; k++){
+		for(int k = pidx; k < neuron_count_prev; k+=h2){
 			z += w_ext_arr[sw_ext[layer_id-1] + k*(neuron_count - 1) + idx]*a_ext_arr[s_ext[layer_id-1] + k];
-			// printf("w_arr[%d] * a_arr[%d] = %.20f\n",
-			// 		sw[layer_id-1] + k*(neuron_count - 1) + idx ,
-			// 		s[layer_id-1] + k,
-			// 		w_arr[sw[layer_id-1] + k*(neuron_count - 1) + idx]*a_arr[s[layer_id-1] + k]);
-			// printf("%.10f * %.10f = %.10f\n", w_arr[sw[layer_id-1] + k*(neuron_count - 1) + idx ],
-			// 		a_arr[s[layer_id-1] + k],
-			// 		w_arr[sw[layer_id-1] + k*(neuron_count - 1) + idx]*a_arr[s[layer_id-1] + k]
-			// 	);
-
 		}
 
-		z_ext_arr[s_ext[layer_id] + idx] = z;
-		float a = 1.0 / (1.0 + expf(-z));
-		a_ext_arr[s_ext[layer_id] + idx] = a;
+		sm_z[pidx*h + lidx] = z;
+
+
+		__syncthreads();
+
+		if(pidx == 0){
+			z = 0;
+			for(int i = 0; i < h2; i++)
+				z += sm_z[i*h + lidx];
+
+				z_ext_arr[s_ext[layer_id] + idx] = z;
+				float a = 1.0 / (1.0 + expf(-z));
+				a_ext_arr[s_ext[layer_id] + idx] = a;
+		}
+
+
 		// printf("index = %d z = %.5f\n", s[layer_id] + idx, z);
 		// printf("a = %.20f\n", a);
 	}
@@ -754,6 +768,9 @@ void AnnCUDA::printf_Network(string filename){
 //******************Cuda 2.0***************************************
 
 void AnnCUDA2::prepare( Topology *top){
+	h = 32;
+	h2 = 32;
+
 	cTopology = top;
 
 
@@ -972,12 +989,12 @@ void AnnCUDA2::calc_feedForward(){
 
 	//printf("current layer_id = %d\n", i);
 		int neuron_count = l[i];
-		int h = 32; // number of threads in block
+
 	  int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
 		dim3 grid_dim(g, 1, 1);
-		dim3 block_dim(h, 1, 1);
-
-		ann::kernel_feedforward_2<<<grid_dim, block_dim>>>(
+		dim3 block_dim(h, h2, 1);
+		int bc_sm = sizeof(float)*h*h2;
+		ann::kernel_feedforward_2<<<grid_dim, block_dim, bc_sm>>>(
 			i,
 			dv_l,
 			dv_s_ext,
@@ -986,7 +1003,11 @@ void AnnCUDA2::calc_feedForward(){
 			dv_a_ext_arr,
 			dv_w_ext_arr
 		);
+		checkCudaErrors( cudaDeviceSynchronize() );
+
 	}
+
+
 }
 
 void AnnCUDA2::calc_gjl(){

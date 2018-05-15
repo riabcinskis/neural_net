@@ -312,7 +312,8 @@ class AnnCUDA : public AnnBase<float> {
 class AnnCUDA2 : public AnnBase<float> {
   private:
   	Topology* cTopology;
-
+    int h;
+    int h2;
   	int L;
   	int * l;
     int * l_ext;

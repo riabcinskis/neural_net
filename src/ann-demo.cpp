@@ -558,7 +558,7 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnCUDA* seri
 		double startTime = clock();
 		epoch_error[j] = 0;
 		max_epoch_error[j] = 0;
-    for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
+    for (int i = 0; i <pictures.getNumberOfSamples(); i++) {
 
       serialCUDA->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
 
