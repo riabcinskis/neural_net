@@ -896,32 +896,8 @@ void AnnCUDA2::calc_gjl(){
 			);
 		}
 
-//	checkCudaErrors( cudaMemcpy(gjl, dv_gjl, bc_gjl, cudaMemcpyDeviceToHost) );
+		//	checkCudaErrors( cudaMemcpy(gjl, dv_gjl, bc_gjl, cudaMemcpyDeviceToHost) );
 
-}
-
-float AnnCUDA2::delta_w(float grad, float dw, float alpha, float eta) {
-	return -eta*grad + alpha*dw;
-}
-
-float AnnCUDA2::gL(float a, float z, float t) {
-	float w = f_deriv(z) * (a - t);
-	return w;
-}
-
-float AnnCUDA2::f(float x) {
-		//return atanf(x)/M_PI + 0.5;
-	float y = 1 + exp(-x);
-	return 1 / y;
-}
-
-float AnnCUDA2::f_deriv(float x) {
-	//return  1.0 / (1.0+ x*x);
-	 return exp(-x) / pow((1 + exp(-x)), 2);
-}
-
-float AnnCUDA2::w_gradient(int layer_id, int w_i, int w_j) {
-	return a_arr[s_ext[layer_id] + w_i] * gjl[s_ext[layer_id + 1] + w_j];
 }
 
 float AnnCUDA2::obtainError(float *b){

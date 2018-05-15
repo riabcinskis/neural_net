@@ -372,11 +372,7 @@ class AnnCUDA2 : public AnnBase<float> {
     void init(FILE *pFile);
 
   	void calc_feedForward();
-  	float delta_w(float grad, float dw, float alpha, float eta);
-  	float f(float x);
-  	float f_deriv(float x);
-  	float gL(float a, float z, float t);
-  	float w_gradient(int layer_id, int w_i, int w_j);
+
   	void calc_gjl();
 
   public:
