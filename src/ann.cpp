@@ -63,16 +63,7 @@ int Topology::obtainNeuronCount(){
 	return count;
 }
 
-int Topology::obtainNeuronCount2(){
-  int count = 0;
-  for (int i = 0; i < ml->size(); i++){
-    int layer_count = (*ml)[i] + 1;
-    count += layer_count;
-    if (layer_count % 32 != 0)
-      count += 32 - layer_count % 32;
-  }
-  return count;
-}
+
 
 int Topology::obtainWeightCount(){
 	int count = 0;
@@ -81,16 +72,7 @@ int Topology::obtainWeightCount(){
 	return count;
 }
 
-int Topology::obtainWeightCount2(){
-  int count = 0;
-  for (int i = 0; i < ml -> size() - 1; i++){
-    int layer_count = ((*ml)[i] + 1)*(*ml)[i+1];
-    count += layer_count;
-    if (layer_count % 32 != 0)
-      count += 32 - layer_count % 32;
-  }
-  return count;
-}
+
 
 int Topology::getInputNeuronCount(){
 	return (*ml)[0];

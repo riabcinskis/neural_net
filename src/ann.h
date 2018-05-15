@@ -45,9 +45,6 @@ class Topology {
 		int obtainNeuronCount();
 		int obtainWeightCount();
 
-    int obtainNeuronCount2();
-    int obtainWeightCount2();
-
 		int getInputNeuronCount();
 		int getOutputNeuronCount();
 
@@ -318,7 +315,7 @@ class AnnCUDA2 : public AnnBase<float> {
 
   	int L;
   	int * l;
-    int * l_real;
+    int * l_ext;
   	int * s;
   	float * a_arr;
   	float * z_arr;
@@ -381,6 +378,10 @@ class AnnCUDA2 : public AnnBase<float> {
   	float gL(float a, float z, float t);
   	float w_gradient(int layer_id, int w_i, int w_j);
   	void calc_gjl();
+
+  public:
+    static int obtainNeuronCountExt(Topology *top);
+    static int obtainWeightCountExt(Topology *top);
 };
 
 /* Class definitions here. */

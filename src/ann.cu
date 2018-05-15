@@ -621,33 +621,33 @@ void AnnCUDA2::prepare( Topology *top){
 
 	l = new int[top->getLayerCount()];
 	s = new int[top->getLayerCount()];
-	l_real = new int[top->getLayerCount()];
+	l_ext = new int[top->getLayerCount()];
 
 	int neuronCount = cTopology->obtainNeuronCount();
 	int weightCount = cTopology->obtainWeightCount();
 
-	int neuronCount2 = cTopology->obtainNeuronCount2();
-	int weightCount2 = cTopology->obtainWeightCount2();
+	int neuronCount_ext = obtainNeuronCountExt(cTopology);
+	int weightCount_ext = obtainWeightCountExt(cTopology);
 
 	// printf("neuronCount = %d\n", neuronCount);
 	// printf("neuronCount2 = %d\n", neuronCount2);
 	// printf("weightCount = %d\n", weightCount);
 	// printf("weightCount2 = %d\n", weightCount2);
 
-	a_arr = new float[neuronCount2];
-	z_arr = new float[neuronCount2];
+	a_arr = new float[neuronCount_ext];
+	z_arr = new float[neuronCount_ext];
 
 	W = new int[top->getLayerCount()];
 	W_real = new int[top->getLayerCount()];
 	sw = new int[top->getLayerCount()];
 	sw_real = new int[top->getLayerCount()];
 
-	w_arr = new float[weightCount2];
-	dw_arr = new float[weightCount2];
+	w_arr = new float[weightCount_ext];
+	dw_arr = new float[weightCount_ext];
 
 	t_arr = new float[top->getLayerSize(top->getLayerCount() - 1)];
 
-	gjl = new float[neuronCount2];
+	gjl = new float[neuronCount_ext];
 
 	// cuda
 
@@ -663,17 +663,17 @@ void AnnCUDA2::prepare( Topology *top){
 	dv_l = NULL; bc_l = sizeof(int)*top->getLayerCount();
 	dv_s = NULL; bc_s = sizeof(int)*top->getLayerCount();;
 
-	dv_a_arr = NULL; bc_a_arr = sizeof(float)*neuronCount2;
-	dv_z_arr = NULL; bc_z_arr = sizeof(float)*neuronCount2;
+	dv_a_arr = NULL; bc_a_arr = sizeof(float)*neuronCount_ext;
+	dv_z_arr = NULL; bc_z_arr = sizeof(float)*neuronCount_ext;
 
 	dv_W = NULL; bc_W = sizeof(int)*top->getLayerCount();
 	dv_sw = NULL; bc_sw = sizeof(int)*top->getLayerCount();
 
-	dv_w_arr = NULL; bc_w_arr = sizeof(float)*weightCount2;
-	dv_dw_arr = NULL; bc_dw_arr = sizeof(float)*weightCount2;
+	dv_w_arr = NULL; bc_w_arr = sizeof(float)*weightCount_ext;
+	dv_dw_arr = NULL; bc_dw_arr = sizeof(float)*weightCount_ext;
 
 	dv_t_arr = NULL; bc_t_arr = sizeof(float)*top->getLayerSize(top->getLayerCount() - 1);
-	dv_gjl = NULL; bc_gjl = sizeof(float)*neuronCount2;
+	dv_gjl = NULL; bc_gjl = sizeof(float)*neuronCount_ext;
 
 	checkCudaErrors( cudaMalloc((void **)&dv_l, bc_l) );
 	checkCudaErrors( cudaMalloc((void **)&dv_s, bc_s) );
@@ -697,20 +697,20 @@ void AnnCUDA2::init(FILE *pFile=NULL){
 	//Neuronu kiekiai sluoksnyje
 	for (int i = 0; i < L; i++) {
 		int neuron_count = cTopology -> getLayerSize(i) + 1;
-		l[i] = neuron_count + (32 - neuron_count % 32);
-		l_real[i] = neuron_count;
+		l[i] = neuron_count;
+		l_ext[i] = neuron_count + (32 - neuron_count % 32);
 	}
 
 	//Sluoksniu pradzios indeksai
 	for (int i = 0; i < L; i++) {
 		s[i] = 0;
 		for (int j = i; j > 0; j--) {
-			s[i] += l[j - 1];
+			s[i] += l_ext[j - 1];
 		}
 		if (i == 0)
-			temp_s[i] = l_real[i];
+			temp_s[i] = l[i];
 		else
-			temp_s[i] = s[i] + l_real[i];
+			temp_s[i] = s[i] + l[i];
 	}
 
 	//Bias neuronai
@@ -720,7 +720,7 @@ void AnnCUDA2::init(FILE *pFile=NULL){
 
 	//Svoriu kiekiai l-ame sluoksnyje
 	for (int i = 0; i < L - 1; i++) {
-		W[i] = l_real[i] * (l_real[i + 1] - 1);
+		W[i] = l[i] * (l[i + 1] - 1);
 		W_real[i] = W[i];
 		if (W[i] % 32 != 0) {
 			W[i] += (32 - W[i] % 32);
@@ -752,7 +752,7 @@ void AnnCUDA2::init(FILE *pFile=NULL){
 	checkCudaErrors( cudaMemcpy(dv_w_arr, w_arr, bc_w_arr, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_dw_arr, dw_arr, bc_dw_arr, cudaMemcpyHostToDevice) );
 
-	checkCudaErrors( cudaMemcpy(dv_l, l_real, bc_l, cudaMemcpyHostToDevice) );
+	checkCudaErrors( cudaMemcpy(dv_l, l, bc_l, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_s, s, bc_s, cudaMemcpyHostToDevice) );
 	checkCudaErrors( cudaMemcpy(dv_sw, sw, bc_sw, cudaMemcpyHostToDevice) );
 }
@@ -762,7 +762,7 @@ void AnnCUDA2::train(float *a, float *b, float alpha, float eta){
 		a_arr[i] = a[i];
 	}
 
-	for (int j = 0; j < cTopology->obtainNeuronCount2(); j++) {
+	for (int j = 0; j < obtainNeuronCountExt(cTopology); j++) {
 		z_arr[j] = 0;
 	}
 
@@ -814,7 +814,7 @@ void AnnCUDA2::feedForward(float *a, float *b){
 		a_arr[i] = a[i];
 	}
 
-	for (int j = 0; j < cTopology->obtainNeuronCount2(); j++) {
+	for (int j = 0; j < obtainNeuronCountExt(cTopology); j++) {
 		z_arr[j] = 0;
 	}
 
@@ -822,7 +822,7 @@ void AnnCUDA2::feedForward(float *a, float *b){
 
 	checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
 
-	for (int i = 0; i < l_real[L - 1]; i++){
+	for (int i = 0; i < l[L - 1]; i++){
 		b[i] = a_arr[s[L - 1] + i];
 		//printf("b[%d] = %.10f\n", i, b[i]);
 	}
@@ -837,7 +837,7 @@ void AnnCUDA2::calc_feedForward(){
 	for (int i = 1; i < L; i++) {//per sluoksnius einu+
 
 	//printf("current layer_id = %d\n", i);
-		int neuron_count = l_real[i];
+		int neuron_count = l[i];
 		int h = 32; // number of threads in block
 	  int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
 		dim3 grid_dim(g, 1, 1);
@@ -861,8 +861,8 @@ void AnnCUDA2::calc_gjl(){
 
 
 	// int last_layer_id=cTopology->getLayerCount()-1;
-	int last_layer_id=L-1;
-	int neuron_count = l_real[last_layer_id];
+	int last_layer_id = L-1;
+	int neuron_count = l[last_layer_id];
 	int h = 32; // number of threads in block
 	int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
 	dim3 grid_dim(g, 1, 1);
@@ -881,7 +881,7 @@ void AnnCUDA2::calc_gjl(){
 
 	//Cia nezinau, ar i >= 0, ar i >= 1
 	for (int i = L - 2; i >= 1; i--) {
-			neuron_count = l_real[i];
+			neuron_count = l[i];
 			h = 32; // number of threads in block
 			g = (neuron_count + (h-neuron_count%h))/h; // number of grids
 			dim3 grid_dim(g, 1, 1);
@@ -931,7 +931,7 @@ float AnnCUDA2::w_gradient(int layer_id, int w_i, int w_j) {
 float AnnCUDA2::obtainError(float *b){
 	checkCudaErrors( cudaMemcpy(a_arr, dv_a_arr, bc_a_arr, cudaMemcpyDeviceToHost) );
 	float error = 0;
-	for(int i = 0; i < l_real[L-1] - 1; i++){
+	for(int i = 0; i < l[L-1] - 1; i++){
 		float tmp = b[i] - a_arr[s[L-1] + i];
 		error += tmp*tmp;
 		//printf("a_arr[%d] = %.10f\n", s[L-1] + i, a_arr[s[L-1] + i]);
@@ -942,6 +942,11 @@ float AnnCUDA2::obtainError(float *b){
 void AnnCUDA2::destroy(){
 	delete[] l;
 	l = NULL;
+
+	delete[] l_ext;
+	l_ext = NULL;
+
+
 	delete[] s;
 	s = NULL;
 
@@ -1026,7 +1031,7 @@ void AnnCUDA2::printf_Network(string filename){
   double *w_arr_dbl = new double[weightCount];
   double *dw_arr_dbl = new double[weightCount];
 	for(int layer_id = 0; layer_id < L - 1; layer_id++)
-		for(int k = 0; k < l_real[layer_id]*(l_real[layer_id+1]-1); k++){
+		for(int k = 0; k < l[layer_id]*(l[layer_id+1]-1); k++){
 			w_arr_dbl[sw_real[layer_id]+k] = (double)w_arr[sw[layer_id]+k];
 			dw_arr_dbl[sw_real[layer_id]+k] = (double)dw_arr[sw[layer_id]+k];
   	}
@@ -1034,4 +1039,28 @@ void AnnCUDA2::printf_Network(string filename){
   fwrite (w_arr_dbl , sizeof(double), weightCount, pFile);
   fwrite (dw_arr_dbl , sizeof(double), weightCount, pFile);
   fclose (pFile);
+}
+
+/* static */
+int AnnCUDA2::obtainNeuronCountExt(Topology *top){
+  int count = 0;
+  for (int i = 0; i < top->getLayerCount(); i++){
+    int neuron_count = top->getLayerSize(i)+1;
+    count += neuron_count;
+    if (neuron_count % 32 != 0)
+      count += 32 - neuron_count % 32;
+  }
+  return count;
+}
+
+/* static */
+int AnnCUDA2::obtainWeightCountExt(Topology *top){
+  int count = 0;
+  for (int i = 0; i < top->getLayerCount()-1; i++){
+    int weight_count =  (top->getLayerSize(i)+1)*top->getLayerSize(i+1); //((*ml)[i] + 1)*(*ml)[i+1];
+    count += weight_count;
+    if (weight_count % 32 != 0)
+      count += 32 - weight_count % 32;
+  }
+  return count;
 }

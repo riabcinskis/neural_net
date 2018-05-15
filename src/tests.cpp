@@ -23,8 +23,8 @@ bool test_topology_CUDA2(){
   topology->addLayer(1);
 
   // printf("%d    %d\n", topology->obtainNeuronCount2(),topology->obtainWeightCount2());
-  if(topology->obtainNeuronCount2() != 128) return false;
-  if(topology->obtainWeightCount2() != 128) return false;
+  if(AnnCUDA2::obtainNeuronCountExt(topology) != 128) return false;
+  if(AnnCUDA2::obtainWeightCountExt(topology) != 128) return false;
 
   return true;
 }
@@ -503,6 +503,7 @@ bool test_forwardCUDA2(){
   if(test_weight[33]!=  warr[7]) return false;
   if(test_weight[34]!=  warr[8]) return false;
 
+  
   float *input = new float[2];
   input[0] = 1;
   input[1] = 2;
