@@ -277,8 +277,11 @@ namespace ann {
 		float eta,
 		float alpha
 	 ){
+		 
+		 int h2 = blockDim.y;
 
-		 volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
+		 int idx = threadIdx.x + blockDim.x*blockIdx.x;
+		 int lidx=threadIdx.y;
 
 		 int neuron_count = l[layer_id];
 		 int neuron_count_next = l[layer_id+1];
@@ -286,7 +289,7 @@ namespace ann {
 		 if(idx >= neuron_count) return;
 
 		 float a = a_ext_arr[s_ext[layer_id] + idx];
-		 for(int k = 0; k < neuron_count_next-1; k++){
+		 for(int k = lidx; k < neuron_count_next-1; k+=h2){
 
 			 float grad=/*a_arr[s[layer_id] + idx]*/a*gjl_ext[s_ext[layer_id + 1] + k];
 
@@ -577,7 +580,7 @@ void AnnCUDA::calc_feedForward(){
 
 	for (int i = 1; i < L; i++) {//per sluoksnius einu+
 
-//	printf("current layer_id = %d\n", i);
+		//	printf("current layer_id = %d\n", i);
 		int neuron_count = l[i];
 		int h = 32; // number of threads in block
 	  int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
@@ -642,7 +645,7 @@ void AnnCUDA::calc_gjl(){
 			);
 		}
 
-//	checkCudaErrors( cudaMemcpy(gjl, dv_gjl, bc_gjl, cudaMemcpyDeviceToHost) );
+		//	checkCudaErrors( cudaMemcpy(gjl, dv_gjl, bc_gjl, cudaMemcpyDeviceToHost) );
 
 }
 
@@ -928,11 +931,10 @@ void AnnCUDA2::train(float *a, float *b, float alpha, float eta){
 	for (int i = 0; i < L-1; i++) {//per sluoksnius einu+
 
 		int neuron_count = l[i];
-		int h = 32; // number of threads in block
+	//	int h = 32; // number of threads in block
 		int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
 		dim3 grid_dim(g, 1, 1);
-		dim3 block_dim(h, 1, 1);
-
+		dim3 block_dim(h, h2, 1);
 		ann::kernel_weight_update_2<<<grid_dim, block_dim>>>(
 			i,
 			dv_l,
@@ -947,6 +949,7 @@ void AnnCUDA2::train(float *a, float *b, float alpha, float eta){
 			eta,
 			alpha
 		);
+	//	checkCudaErrors( cudaDeviceSynchronize() );
 	}
 
 	cudaError_t err = cudaGetLastError();
