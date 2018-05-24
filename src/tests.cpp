@@ -503,7 +503,7 @@ bool test_forwardCUDA2(){
   if(test_weight[33]!=  warr[7]) return false;
   if(test_weight[34]!=  warr[8]) return false;
 
-  
+
   float *input = new float[2];
   input[0] = 1;
   input[1] = 2;
@@ -568,8 +568,8 @@ bool test_backwardCUDA2(){
 
   float *warr2 = serialFLT->getWeights();
   float *w = new float[9];
-  // for(int i = 0; i < 9; i++)
-  //   printf("w[%d] = %.20f;\n", i, warr2[i]);
+  for(int i = 0; i < 9; i++)
+    printf("w[%d] = %.20f;\n", i, warr2[i]);
 
 
     w[0] = 0.49771153926849365234;
@@ -581,6 +581,8 @@ bool test_backwardCUDA2(){
     w[6] = 0.89233678579330444336;
     w[7] = 0.29139557480812072754;
     w[8] = 0.18853138387203216553;
+
+
 
 
   //             0.49771153302267300

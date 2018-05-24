@@ -239,15 +239,15 @@ namespace ann {
 		float *w_ext_arr
 	 ){
 
-		int h=blockDim.x;
-		int h2 = blockDim.y;
+		 int idx = threadIdx.y + blockDim.y*blockIdx.y;
+ 		int h = blockDim.x;
+ 		int h2 = blockDim.y;
+ 		int pidx = threadIdx.y;
+		int lidx = threadIdx.x;
 
 		extern __shared__ int sm[];
 		float *sm_g = (float*)&sm[0];
 
-		volatile int idx = threadIdx.x + blockDim.x*blockIdx.x;
-		int lidx=threadIdx.x;
-		int pidx=threadIdx.y;
 
 		int neuron_count = l[layer_id];
 		int neuron_count_next = l[layer_id+1];
@@ -255,7 +255,7 @@ namespace ann {
 		if(idx >= neuron_count-1) return;
 
 		float sum = 0;
-		for (int k = pidx; k < neuron_count_next-1; k+=h2) {
+		for (int k = lidx; k < neuron_count_next-1; k+=h) {
 				sum += w_ext_arr[sw_ext[layer_id] + idx*(l[layer_id + 1] - 1) + k] * gjl_ext[s_ext[layer_id + 1] + k];
 		}
 
@@ -263,16 +263,17 @@ namespace ann {
 
 		__syncthreads();
 
-		if(pidx == 0){
+		if(lidx == 0){
 			float z = z_ext_arr[s_ext[layer_id] + idx];
 			float tmp = 1 + expf(-z);
-			float f_deriv=expf(-z) / (tmp*tmp);
+			float f_deriv = expf(-z) / (tmp*tmp);
 
 			sum = 0;
-			for(int i = 0; i < h2; i++)
-				sum += sm_g[i*h + lidx];
+			for(int i = 0; i < h; i++)
+				sum += sm_g[pidx*h + i];
 
-			gjl_ext[s_ext[layer_id] + idx]=f_deriv*sum;
+
+			gjl_ext[s_ext[layer_id] + idx] = f_deriv*sum;
 		}
 	}
 
@@ -293,10 +294,11 @@ namespace ann {
 		float alpha
 	 ){
 
+		 int idx = threadIdx.y + blockDim.y*blockIdx.y;
+		 int h = blockDim.x;
 		 int h2 = blockDim.y;
+		 int pidx=threadIdx.x;
 
-		 int idx = threadIdx.x + blockDim.x*blockIdx.x;
-		 int pidx=threadIdx.y;
 
 		 int neuron_count = l[layer_id];
 		 int neuron_count_next = l[layer_id+1];
@@ -304,16 +306,20 @@ namespace ann {
 		 if(idx >= neuron_count) return;
 
 		 float a = a_ext_arr[s_ext[layer_id] + idx];
-		 for(int k = pidx; k < neuron_count_next-1; k+=h2){
 
-			 float grad=a*gjl_ext[s_ext[layer_id + 1] + k];
+		 int index0 = s_ext[layer_id + 1] + pidx;
+		 int index1 = sw_ext[layer_id] + idx*(neuron_count_next - 1) + pidx;
+		 for(int k = pidx; k < neuron_count_next-1; k+=h){
 
-			 dw_ext_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k]=
-					-eta*grad+
-					alpha*dw_ext_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k];
+			 float grad = a*gjl_ext[index0];
+			 index0 += h;
+			 float dw = dw_ext_arr[index1] = -eta*grad + alpha*dw_ext_arr[index1];
 
-			 w_ext_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k]+=
-					dw_ext_arr[sw_ext[layer_id] + idx*(neuron_count_next - 1) + k];
+			 w_ext_arr[index1] += dw;
+
+
+				index1 += h;
+
 		 }
 	}
 
@@ -946,8 +952,8 @@ void AnnCUDA2::train(float *a, float *b, float alpha, float eta){
 	for (int i = 0; i < L-1; i++) {//per sluoksnius einu+
 
 		int neuron_count = l[i];
-		int g = (neuron_count + (h-neuron_count%h))/h; // number of grids
-		dim3 grid_dim(g, 1, 1);
+		int g = (neuron_count + (h2-neuron_count%h2))/h2; // number of grids
+		dim3 grid_dim(1, g, 1);
 		dim3 block_dim(h, h2, 1);
 		ann::kernel_weight_update_2<<<grid_dim, block_dim>>>(
 			i,
@@ -963,7 +969,7 @@ void AnnCUDA2::train(float *a, float *b, float alpha, float eta){
 			eta,
 			alpha
 		);
-		checkCudaErrors( cudaDeviceSynchronize() );
+	//	checkCudaErrors( cudaDeviceSynchronize() );
 	}
 
 	cudaError_t err = cudaGetLastError();
@@ -1017,7 +1023,7 @@ void AnnCUDA2::calc_feedForward(){
 			dv_a_ext_arr,
 			dv_w_ext_arr
 		);
-		checkCudaErrors( cudaDeviceSynchronize() );
+	//	checkCudaErrors( cudaDeviceSynchronize() );
 	}
 }
 
@@ -1039,15 +1045,15 @@ void AnnCUDA2::calc_gjl(){
 		dv_t_arr,
 		dv_gjl_ext
 	);
-	checkCudaErrors( cudaDeviceSynchronize() );
+	//checkCudaErrors( cudaDeviceSynchronize() );
 
 	for (int i = L - 2; i >= 1; i--) {
 			neuron_count = l[i];
-			g = (neuron_count + (h-neuron_count%h))/h; // number of grids
-			dim3 grid_dim(g, 1, 1);
+			g = (neuron_count + (h2-neuron_count%h2))/h2; // number of grids
+			dim3 grid_dim(1, g, 1);
 			dim3 block_dim(h, h2, 1);
 			int bc_sm = sizeof(float)*h*h2;
-			ann::kernel_calc_gjL<<<grid_dim, block_dim,bc_sm>>>(
+			ann::kernel_calc_gjL_2<<<grid_dim, block_dim,bc_sm>>>(
 				i,
 				dv_l,
 				dv_s_ext,
