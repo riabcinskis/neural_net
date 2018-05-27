@@ -178,8 +178,10 @@ namespace ann {
 		if(idx >= neuron_count-1) return;
 
 		float z = 0;
+		int index0=sw_ext[layer_id-1];
+		int index1=s_ext[layer_id-1];
 		for(int k = pidx; k < neuron_count_prev; k+=h2){
-			z += w_ext_arr[sw_ext[layer_id-1] + k*(neuron_count - 1) + idx]*a_ext_arr[s_ext[layer_id-1] + k];
+			z += w_ext_arr[index0 + k*(neuron_count - 1) + idx]*a_ext_arr[index1 + k];
 		}
 
 		sm_z[pidx*h + lidx] = z;
@@ -241,7 +243,6 @@ namespace ann {
 
 		 int idx = threadIdx.y + blockDim.y*blockIdx.y;
  		int h = blockDim.x;
- 		int h2 = blockDim.y;
  		int pidx = threadIdx.y;
 		int lidx = threadIdx.x;
 
@@ -296,7 +297,6 @@ namespace ann {
 
 		 int idx = threadIdx.y + blockDim.y*blockIdx.y;
 		 int h = blockDim.x;
-		 int h2 = blockDim.y;
 		 int pidx=threadIdx.x;
 
 

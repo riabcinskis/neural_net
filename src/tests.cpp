@@ -568,8 +568,8 @@ bool test_backwardCUDA2(){
 
   float *warr2 = serialFLT->getWeights();
   float *w = new float[9];
-  for(int i = 0; i < 9; i++)
-    printf("w[%d] = %.20f;\n", i, warr2[i]);
+  // for(int i = 0; i < 9; i++)
+  //   printf("w[%d] = %.20f;\n", i, warr2[i]);
 
 
     w[0] = 0.49771153926849365234;

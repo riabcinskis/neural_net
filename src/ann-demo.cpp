@@ -169,17 +169,18 @@ void pic_sample() {
 
 	Topology* topology = new Topology();
 	topology->addLayer(784);
-	topology->addLayer(1000);
 	topology->addLayer(300);
 	topology->addLayer(10);
 
 	TrainConfig *config = new TrainConfig();
 	config->setImpl(IMPL_DOUBLE);
+	config->setMode(1);
 	config->setPicDataFileName("./../files/train-images.idx3-ubyte");
 	config->setLabelDataFileName("./../files/train-labels.idx1-ubyte");
-	config->setErrorsFileName("avg_max_error_dbl.txt");
-	config->setNetworkFileName("network_data_dbl.bin");
-	config->setEpochCount(1);
+	config->setErrorsFileName("./../rezultatai/avg_max_error_dbl.txt");
+	config->setTimesFileName("./../rezultatai/times_dbl.txt");
+	config->setNetworkFileName("./../rezultatai/network_data_dbl.bin");
+	config->setEpochCount(30);
 	config->setTopology(topology);
 	config->setEta(0.005);
 	config->setAlpha(0.8);
@@ -187,7 +188,7 @@ void pic_sample() {
 
 	double startTime = clock();
 
-  //PictureClassification::Train(config);
+  PictureClassification::Train(config);
 
   double endTime = clock();
   double runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
@@ -196,13 +197,14 @@ void pic_sample() {
 	printf("=== DOUBLE \n");
 
 
-	//PictureClassification::Test(test_images,test_labels, "network_data_dbl.bin");
+	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
 
 	////
 	config->setImpl(IMPL_FLOAT);
-	config->setErrorsFileName("avg_max_error_flt.txt");
-	config->setNetworkFileName("network_data_flt.bin");
-	config->setEpochCount(1);
+	config->setErrorsFileName("./../rezultatai/avg_max_error_flt.txt");
+	config->setTimesFileName("./../rezultatai/times_flt.txt");
+	config->setNetworkFileName("./../rezultatai/network_data_flt.bin");
+	config->setEpochCount(30);
 	config->setTopology(topology);
 	config->setEta(0.005);
 	config->setAlpha(0.8);
@@ -219,36 +221,38 @@ void pic_sample() {
 	printf("=== FLOAT \n");
 
 
-	PictureClassification::Test(test_images,test_labels, "network_data_flt.bin");
+	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
 
 	//****************Cuda********************************
 
-	// config->setImpl(IMPL_CUDA);
-	// config->setErrorsFileName("avg_max_error_cuda.txt");
-	// config->setNetworkFileName("network_data_cuda.bin");
-	// config->setEpochCount(1);
-	// config->setTopology(topology);
-	// config->setEta(0.005);
-	// config->setAlpha(0.8);
-	//
-	// startTime = clock();
-  // PictureClassification::Train(config);
-	//
-  // endTime = clock();
-  // runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
-	//
-	// printf("Apmokymas uztruko: %.5f sec\n", runtime);
-	// printf("=== CUDA \n");
-	//
-	//
-	// PictureClassification::Test(test_images,test_labels, "network_data_cuda.bin");
+	config->setImpl(IMPL_CUDA);
+	config->setErrorsFileName("./../rezultatai/avg_max_error_cuda.txt");
+	config->setTimesFileName("./../rezultatai/times_CUDA.txt");
+	config->setNetworkFileName("./../rezultatai/network_data_cuda.bin");
+	config->setEpochCount(30);
+	config->setTopology(topology);
+	config->setEta(0.005);
+	config->setAlpha(0.8);
+
+	startTime = clock();
+  PictureClassification::Train(config);
+
+  endTime = clock();
+  runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
+
+	printf("Apmokymas uztruko: %.5f sec\n", runtime);
+	printf("=== CUDA \n");
+
+
+	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
 
 	//****************Cuda2********************************
 
 	config->setImpl(IMPL_CUDA2);
-	config->setErrorsFileName("avg_max_error_cuda2.txt");
-	config->setNetworkFileName("network_data_cuda2.bin");
-	config->setEpochCount(1);
+	config->setErrorsFileName("./../rezultatai/avg_max_error_cuda2.txt");
+	config->setTimesFileName("./../rezultatai/times_CUDA2.txt");
+	config->setNetworkFileName("./../rezultatai/network_data_cuda2.bin");
+	config->setEpochCount(30);
 	config->setTopology(topology);
 	config->setEta(0.005);
 	config->setAlpha(0.8);
@@ -263,7 +267,7 @@ void pic_sample() {
 	printf("=== CUDA2 \n");
 
 
-	PictureClassification::Test(test_images,test_labels, "network_data_cuda2.bin");
+	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
 
 }
 
@@ -273,6 +277,10 @@ void pic_sample() {
 //
 void TrainConfig::setImpl(int impl){
 	mImpl = impl;
+}
+
+void TrainConfig::setMode(int mode){
+	mMode=mode;
 }
 
 void TrainConfig::setPicDataFileName(string picDataFileName){
@@ -289,6 +297,10 @@ void TrainConfig::setEpochCount(int epochCount){
 
 void TrainConfig::setErrorsFileName(string errorsFileName){
 	mErrorsFileName = errorsFileName;
+}
+
+void TrainConfig::setTimesFileName(string timesFileName){
+	mTimesFileName = timesFileName;
 }
 
 void TrainConfig::setNetworkFileName(string networkFileName){
@@ -311,6 +323,10 @@ int TrainConfig::getImpl(){
 	return mImpl;
 }
 
+int TrainConfig::getMode(){
+	return mMode;
+}
+
 string TrainConfig::getPicDataFileName(){
 	return mPicDataFileName;
 }
@@ -325,6 +341,10 @@ int TrainConfig::getEpochCount(){
 
 string TrainConfig::getErrorsFileName(){
 	return mErrorsFileName;
+}
+
+string TrainConfig::getTimesFileName(){
+	return mTimesFileName;
 }
 
 string TrainConfig::getNetworkFileName(){
@@ -427,53 +447,67 @@ void PictureClassification::train_network(PictureData pictures,AnnSerialDBL* ser
 	double *elapsedTime = new double[epoch_count];
 
   for (int j = 0; j < epoch_count; j++){
-		double startTime = clock();
 		epoch_error[j] = 0;
 		max_epoch_error[j] = 0;
+		double startTime = clock();
     for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
 
       serialDBL->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
 
-			double error = serialDBL->obtainError( pictures.getOutput(i));
+			if(config->getMode()==1){
+				double error = serialDBL->obtainError( pictures.getOutput(i));
 
-			epoch_error[j]+=error;
+				epoch_error[j]+=error;
 
-			if(max_epoch_error[j]<error){
-				max_epoch_error[j]=error;
+				if(max_epoch_error[j]<error){
+					max_epoch_error[j]=error;
+				}
 			}
 		}
 		printf("+\n");
 		double endTime = clock();
 		elapsedTime[j] = (double)(endTime-startTime)/CLOCKS_PER_SEC;
 
-		serialDBL->printf_Network("temp.bin");
-		string test_labels = "./../files/t10k-labels.idx1-ubyte";
-		string test_images = "./../files/t10k-images.idx3-ubyte";
-		PictureClassification::Test(test_images,test_labels, "temp.bin");
+		if(config->getMode()==1){
+			serialDBL->printf_Network("temp.bin");
+			string test_labels = "./../files/t10k-labels.idx1-ubyte";
+			string test_images = "./../files/t10k-images.idx3-ubyte";
+			PictureClassification::Test(test_images,test_labels, "temp.bin");
+		}
 
-
-
-
-
-
-		printf("Apmokymas uztruko: %.5f sec\n", elapsedTime[j]);
+		printf("Epocha %d uztruko: %.5f sec\n",j+1, elapsedTime[j]);
+		if(config->getMode()==1)
 		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 	}
 	serialDBL->finishTraining();
 
 
-	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
-	if(file == NULL){
-		printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+	if(config->getMode()==1){
+		FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
+		if(file == NULL){
+			printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+		}
+
+		for(int i=0;i<epoch_count;i++){
+			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,
+					epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
+		}
+
+		fclose(file);
 	}
 
-	for(int i=0;i<epoch_count;i++){
-		fprintf(file, "%d\t%.10f\t%.10f\t%.10f\n",i+1,
-				epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i],
-				elapsedTime[i]);
-	}
+	if(config->getMode()==2){
+		FILE *file1 = fopen(config->getTimesFileName().c_str(), "w");
+		if(file1 == NULL){
+			printf("*** failed to open file \'\%s'\n", config->getTimesFileName().c_str());
+		}
 
-	fclose(file);
+		for(int i=0;i<epoch_count;i++){
+			fprintf(file1, "%d\t%.10f\n",i+1,elapsedTime[i]);
+		}
+
+		fclose(file1);
+	}
 
 	delete[] tmpArr;
 	delete[] epoch_error;
@@ -495,47 +529,66 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT*
 
 
   for (int j = 0; j < epoch_count; j++){
-		double startTime = clock();
 		epoch_error[j] = 0;
 		max_epoch_error[j] = 0;
+		double startTime = clock();
     for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
 
       serialFLT->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
 
-			float error = serialFLT->obtainError( pictures.getOutput(i));
-			epoch_error[j]+=error;
+			if(config->getMode()==1){
+				float error = serialFLT->obtainError( pictures.getOutput(i));
+				epoch_error[j]+=error;
 
-			if(max_epoch_error[j]<error){
-				max_epoch_error[j]=error;
+				if(max_epoch_error[j]<error){
+					max_epoch_error[j]=error;
+				}
 			}
 		}
 
 		double endTime = clock();
 		elapsedTime[j] = (double)(endTime-startTime)/CLOCKS_PER_SEC;
 
-		serialFLT->printf_Network("temp.bin");
-		string test_labels = "./../files/t10k-labels.idx1-ubyte";
-		string test_images = "./../files/t10k-images.idx3-ubyte";
-		PictureClassification::Test(test_images,test_labels, "temp.bin");
+		if(config->getMode()==1){
+			serialFLT->printf_Network("temp.bin");
+			string test_labels = "./../files/t10k-labels.idx1-ubyte";
+			string test_images = "./../files/t10k-images.idx3-ubyte";
+			PictureClassification::Test(test_images,test_labels, "temp.bin");
+		}
 
 		printf("+\n");
-		printf("Apmokymas uztruko: %.5f sec\n", elapsedTime[j]);
+		printf("Epocha %d uztruko: %.5f sec\n",j+1, elapsedTime[j]);
+		if(config->getMode()==1)
 		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 	}
 	serialFLT->finishTraining();
 
-	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
-	if(file == NULL){
-		printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+	if(config->getMode()==1){
+		FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
+		if(file == NULL){
+			printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+		}
+
+		for(int i=0;i<epoch_count;i++){
+			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,
+					epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
+		}
+
+		fclose(file);
 	}
 
-	for(int i=0;i<epoch_count;i++){
-		fprintf(file, "%d\t%.10f\t%.10f\t%.10f\n",i+1,
-				epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i],
-				elapsedTime[i]);
-	}
+	if(config->getMode()==2){
+		FILE *file1 = fopen(config->getTimesFileName().c_str(), "w");
+		if(file1 == NULL){
+			printf("*** failed to open file \'\%s'\n", config->getTimesFileName().c_str());
+		}
 
-	fclose(file);
+		for(int i=0;i<epoch_count;i++){
+			fprintf(file1, "%d\t%.10f\n",i+1,elapsedTime[i]);
+		}
+
+		fclose(file1);
+	}
 
 	delete[] tmpArr;
 	delete[] epoch_error;
@@ -556,47 +609,67 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnCUDA* seri
 	double *elapsedTime = new double[epoch_count];
 
   for (int j = 0; j < epoch_count; j++){
-		double startTime = clock();
 		epoch_error[j] = 0;
 		max_epoch_error[j] = 0;
-    for (int i = 0; i <pictures.getNumberOfSamples()/1; i++) {
+		double startTime = clock();
+    for (int i = 0; i <pictures.getNumberOfSamples(); i++) {
 
       serialCUDA->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
 
-			float error = serialCUDA->obtainError( pictures.getOutput(i));
+			if(config->getMode()==1){
+				float error = serialCUDA->obtainError( pictures.getOutput(i));
 
-			epoch_error[j]+=error;
+				epoch_error[j]+=error;
 
-			if(max_epoch_error[j]<error){
-				max_epoch_error[j]=error;
+				if(max_epoch_error[j]<error){
+					max_epoch_error[j]=error;
+				}
 			}
 		}
 		double endTime = clock();
 		elapsedTime[j] = (double)(endTime-startTime)/CLOCKS_PER_SEC;
-		serialCUDA->finishTraining();
-		serialCUDA->printf_Network("temp.bin");
-		string test_labels = "./../files/t10k-labels.idx1-ubyte";
-		string test_images = "./../files/t10k-images.idx3-ubyte";
-		PictureClassification::Test(test_images,test_labels, "temp.bin");
+
+		if(config->getMode()==1){
+			serialCUDA->finishTraining();
+			serialCUDA->printf_Network("temp.bin");
+			string test_labels = "./../files/t10k-labels.idx1-ubyte";
+			string test_images = "./../files/t10k-images.idx3-ubyte";
+			PictureClassification::Test(test_images,test_labels, "temp.bin");
+		}
 
 		printf("+\n");
-		printf("Apmokymas uztruko: %.5f sec\n", elapsedTime[j]);
+		printf("Epocha %d uztruko: %.5f sec\n",j+1, elapsedTime[j]);
+		if(config->getMode()==1)
 		printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 	}
 	serialCUDA->finishTraining();
 
-	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
-	if(file == NULL){
-		printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+	if(config->getMode()==1){
+		FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
+		if(file == NULL){
+			printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+		}
+
+		for(int i=0;i<epoch_count;i++){
+			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,
+					epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
+		}
+
+		fclose(file);
 	}
 
-	for(int i=0;i<epoch_count;i++){
-		fprintf(file, "%d\t%.10f\t%.10f\t%.10f\n",i+1,
-				epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i],
-				elapsedTime[i]);
-	}
+	if(config->getMode()==2){
+		FILE *file1 = fopen(config->getTimesFileName().c_str(), "w");
+		if(file1 == NULL){
+			printf("*** failed to open file \'\%s'\n", config->getTimesFileName().c_str());
+		}
 
-	fclose(file);
+		for(int i=0;i<epoch_count;i++){
+			fprintf(file1, "%d\t%.10f\n",i+1,elapsedTime[i]);
+		}
+
+		fclose(file1);
+	}
 
 	delete[] tmpArr;
 	delete[] epoch_error;
@@ -617,48 +690,67 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnCUDA2* ser
 	double *elapsedTime = new double[epoch_count];
 
   for (int j = 0; j < epoch_count; j++){
-		double startTime = clock();
 		epoch_error[j] = 0;
 		max_epoch_error[j] = 0;
+		double startTime = clock();
     for (int i = 0; i < pictures.getNumberOfSamples(); i++) {
 
       serialCUDA->train( pictures.getInput(i),  pictures.getOutput(i), alpha, eta);
+			if(config->getMode()==1){
+				float error = serialCUDA->obtainError( pictures.getOutput(i));
 
-			//float error = serialCUDA->obtainError( pictures.getOutput(i));
+				epoch_error[j]+=error;
 
-			//epoch_error[j]+=error;
-
-			// if(max_epoch_error[j]<error){
-			// 	max_epoch_error[j]=error;
-			// }
+				if(max_epoch_error[j]<error){
+					max_epoch_error[j]=error;
+				}
+			}
 		}
-		 double endTime = clock();
-		 elapsedTime[j] = (double)(endTime-startTime)/CLOCKS_PER_SEC;
-		// 	serialCUDA->finishTraining();
-		//
-		// serialCUDA->printf_Network("temp.bin");
-		// string test_labels = "./../files/t10k-labels.idx1-ubyte";
-		// string test_images = "./../files/t10k-images.idx3-ubyte";
-		// PictureClassification::Test(test_images,test_labels, "temp.bin");
-		//
+		double endTime = clock();
+		elapsedTime[j] = (double)(endTime-startTime)/CLOCKS_PER_SEC;
+
+		if(config->getMode()==1){
+			serialCUDA->finishTraining();
+
+			serialCUDA->printf_Network("temp.bin");
+			string test_labels = "./../files/t10k-labels.idx1-ubyte";
+			string test_images = "./../files/t10k-images.idx3-ubyte";
+			PictureClassification::Test(test_images,test_labels, "temp.bin");
+		}
+
 		 printf("+\n");
-		 printf("Apmokymas uztruko: %.5f sec\n", elapsedTime[j]);
-		// printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
+		 printf("Epocha %d uztruko: %.5f sec\n",j+1, elapsedTime[j]);
+		 if(config->getMode()==1)
+		 printf("%d epocha\tavg:%.10f\tmax:%.10f\n",j+1,epoch_error[j]/pictures.getNumberOfSamples(),max_epoch_error[j]);
 	}
 	serialCUDA->finishTraining();
 
-	FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
-	if(file == NULL){
-		printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+	if(config->getMode()==1){
+		FILE *file = fopen(config->getErrorsFileName().c_str(), "w");
+		if(file == NULL){
+			printf("*** failed to open file \'\%s'\n", config->getErrorsFileName().c_str());
+		}
+
+		for(int i=0;i<epoch_count;i++){
+			fprintf(file, "%d\t%.10f\t%.10f\n",i+1,
+					epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i]);
+		}
+
+		fclose(file);
 	}
 
-	for(int i=0;i<epoch_count;i++){
-		fprintf(file, "%d\t%.10f\t%.10f\t%.10f\n",i+1,
-				epoch_error[i]/pictures.getNumberOfSamples(),max_epoch_error[i],
-				elapsedTime[i]);
-	}
+	if(config->getMode()==2){
+		FILE *file1 = fopen(config->getTimesFileName().c_str(), "w");
+		if(file1 == NULL){
+			printf("*** failed to open file \'\%s'\n", config->getTimesFileName().c_str());
+		}
 
-	fclose(file);
+		for(int i=0;i<epoch_count;i++){
+			fprintf(file1, "%d\t%.10f\n",i+1,elapsedTime[i]);
+		}
+
+		fclose(file1);
+	}
 
 	delete[] tmpArr;
 	delete[] epoch_error;
@@ -974,9 +1066,9 @@ int main (int c, char *v[]) {
 
   printf("ANN - demo\n\n");
 
- if(run_tests() == false) return 0;
+  if(run_tests() == false) return 0;
 
- // xor_sample();
+  // xor_sample();
 
 	// printf("\n\n\nFloat rezultatai: \n");
 	// xor_sample_Float();
@@ -985,5 +1077,5 @@ int main (int c, char *v[]) {
 
 	pic_sample();
 
- return 0;
+  return 0;
 }

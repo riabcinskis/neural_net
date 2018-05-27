@@ -61,30 +61,36 @@ class PictureDataFlt : public Data_Float{
 class TrainConfig{
 	private:
 		int mImpl;
+		int mMode;
 		string mPicDataFileName;
 		string mLabelDataFileName;
 		int mEpochCount;
 		string mErrorsFileName;
+		string mTimesFileName;
 		string mNetworkFileName;
 		Topology *mTopology;
 		double mEta;
 		double mAlpha;
 	public:
 		void setImpl(int impl);
+		void setMode(int mode);
 		void setPicDataFileName(string picDataFileName);
 		void setLabelDataFileName(string labelDataFileName);
 		void setEpochCount(int epochCount);
 		void setErrorsFileName(string errorsFileName);
+		void setTimesFileName(string timesFileName);
 		void setNetworkFileName(string networkFileName);
 		void setTopology(Topology *topology);
 		void setEta(double eta);
 		void setAlpha(double alpha);
 
 		int getImpl();
+		int getMode();
 		string getPicDataFileName();
 		string getLabelDataFileName();
 		int getEpochCount();
 		string getErrorsFileName();
+		string getTimesFileName();
 		string getNetworkFileName();
 		Topology* getTopology();
 		double getEta();
