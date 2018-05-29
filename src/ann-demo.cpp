@@ -174,7 +174,7 @@ void pic_sample() {
 
 	TrainConfig *config = new TrainConfig();
 	config->setImpl(IMPL_DOUBLE);
-	config->setMode(1);
+	config->setMode(2);
 	config->setPicDataFileName("./../files/train-images.idx3-ubyte");
 	config->setLabelDataFileName("./../files/train-labels.idx1-ubyte");
 	config->setErrorsFileName("./../rezultatai/avg_max_error_dbl.txt");
