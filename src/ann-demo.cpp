@@ -212,7 +212,7 @@ void pic_sample() {
 
 	startTime = clock();
 
-  PictureClassification::Train(config);
+  //PictureClassification::Train(config);
 
   endTime = clock();
   runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
@@ -255,10 +255,10 @@ void pic_sample() {
 	config->setEpochCount(30);
 	config->setTopology(topology);
 	config->setEta(0.005);
-	config->setAlpha(0.8);
+	config->setAlpha(0.9);
 
 	startTime = clock();
-//	PictureClassification::Train(config);
+	PictureClassification::Train(config);
 
 	endTime = clock();
 	runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
@@ -267,7 +267,7 @@ void pic_sample() {
 	printf("=== CUDA2 \n");
 
 
-	//PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
+	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
 
 }
 
