@@ -174,7 +174,7 @@ void pic_sample() {
 
 	TrainConfig *config = new TrainConfig();
 	config->setImpl(IMPL_DOUBLE);
-	config->setMode(2);
+	config->setMode(1);
 	config->setPicDataFileName("./../files/train-images.idx3-ubyte");
 	config->setLabelDataFileName("./../files/train-labels.idx1-ubyte");
 	config->setErrorsFileName("./../rezultatai/avg_max_error_dbl.txt");
@@ -183,12 +183,12 @@ void pic_sample() {
 	config->setEpochCount(30);
 	config->setTopology(topology);
 	config->setEta(0.005);
-	config->setAlpha(0.8);
+	config->setAlpha(0.85);
 
 
 	double startTime = clock();
 
-  PictureClassification::Train(config);
+  //PictureClassification::Train(config);
 
   double endTime = clock();
   double runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
@@ -197,7 +197,7 @@ void pic_sample() {
 	printf("=== DOUBLE \n");
 
 
-	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
+	//PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
 
 	////
 	config->setImpl(IMPL_FLOAT);
@@ -207,7 +207,7 @@ void pic_sample() {
 	config->setEpochCount(30);
 	config->setTopology(topology);
 	config->setEta(0.005);
-	config->setAlpha(0.8);
+	config->setAlpha(0.9);
 
 
 	startTime = clock();
@@ -221,7 +221,7 @@ void pic_sample() {
 	printf("=== FLOAT \n");
 
 
-	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
+//	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
 
 	//****************Cuda********************************
 
@@ -235,7 +235,7 @@ void pic_sample() {
 	config->setAlpha(0.8);
 
 	startTime = clock();
-  PictureClassification::Train(config);
+//  PictureClassification::Train(config);
 
   endTime = clock();
   runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
@@ -244,7 +244,7 @@ void pic_sample() {
 	printf("=== CUDA \n");
 
 
-	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
+//	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
 
 	//****************Cuda2********************************
 
@@ -258,7 +258,7 @@ void pic_sample() {
 	config->setAlpha(0.8);
 
 	startTime = clock();
-	PictureClassification::Train(config);
+//	PictureClassification::Train(config);
 
 	endTime = clock();
 	runtime = (double)(endTime-startTime)/CLOCKS_PER_SEC;
@@ -267,7 +267,7 @@ void pic_sample() {
 	printf("=== CUDA2 \n");
 
 
-	PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
+	//PictureClassification::Test(test_images,test_labels, config->getNetworkFileName());
 
 }
 
@@ -549,7 +549,7 @@ void PictureClassification::train_network(PictureDataFlt pictures, AnnSerialFLT*
 		double endTime = clock();
 		elapsedTime[j] = (double)(endTime-startTime)/CLOCKS_PER_SEC;
 
-		if(config->getMode()==1){
+		if(config->getMode()==10){
 			serialFLT->printf_Network("temp.bin");
 			string test_labels = "./../files/t10k-labels.idx1-ubyte";
 			string test_images = "./../files/t10k-images.idx3-ubyte";
@@ -1066,7 +1066,7 @@ int main (int c, char *v[]) {
 
   printf("ANN - demo\n\n");
 
-  if(run_tests() == false) return 0;
+//  if(run_tests() == false) return 0;
 
   // xor_sample();
 
